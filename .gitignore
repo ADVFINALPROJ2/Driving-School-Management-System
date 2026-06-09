@@ -1,0 +1,46 @@
+# ========================
+# Rails (backend)
+# ========================
+backend/tmp/
+backend/log/
+backend/storage/
+backend/.byebug_history
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Credentials & secrets
+backend/config/master.key
+backend/config/credentials.yml.enc
+backend/config/credentials/
+
+# Bundler
+backend/vendor/bundle/
+
+# Node / Yarn (if used in Rails assets)
+backend/node_modules/
+backend/.yarn-integrity
+backend/yarn-error.log
+
+# ========================
+# Frontend (if added later)
+# ========================
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.nuxt/
+
+# ========================
+# OS / Editor
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
