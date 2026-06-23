@@ -1,12 +1,27 @@
 FactoryBot.define do
   factory :student do
-    batch { nil }
-    status { "MyString" }
-    theory_started_at { "2026-06-19 18:57:32" }
-    practical_started_at { "2026-06-19 18:57:32" }
-    theory_days_completed { 1 }
-    practical_days_completed { 1 }
-    last_attendance_date { "2026-06-19" }
-    mock_test_score { 1 }
+    batch
+    status { "registered" }
+    student_id { "STU#{Faker::Number.unique.number(digits: 6)}" }
+    document_id { "DOC#{Faker::Number.unique.number(digits: 6)}" }
+    first_name { Faker::Name.first_name }
+    middle_name { Faker::Name.middle_name }
+    last_name { Faker::Name.last_name }
+    date_of_birth { Faker::Date.birthday(min: 18, max: 65) }
+    blood_type { %w[A+ A- B+ B- AB+ AB- O+ O-].sample }
+    address { Faker::Address.street_address }
+    house_number { Faker::Address.building_number }
+    kebele { Faker::Address.community }
+    woreda { Faker::Address.community }
+    subcity { Faker::Address.community }
+    city { Faker::Address.city }
+    verified { false }
+    verified_at { nil }
+    theory_started_at { nil }
+    practical_started_at { nil }
+    theory_days_completed { 0 }
+    practical_days_completed { 0 }
+    last_attendance_date { nil }
+    mock_test_score { 0 }
   end
 end

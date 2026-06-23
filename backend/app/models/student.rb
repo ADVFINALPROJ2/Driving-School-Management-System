@@ -4,6 +4,19 @@ class Student < ApplicationRecord
   belongs_to :batch
 
   validates :status, presence: true
+  validates :student_id, presence: true, uniqueness: true
+  validates :document_id, presence: true, uniqueness: true
+  validates :first_name, presence: true, length: { maximum: 50 }
+  validates :middle_name, presence: true, length: { maximum: 50 }
+  validates :last_name, presence: true, length: { maximum: 50 }
+  validates :date_of_birth, presence: true
+  validates :blood_type, presence: true, inclusion: { in: %w[A+ A- B+ B- AB+ AB- O+ O-] }
+  validates :address, presence: true, length: { maximum: 200 }
+  validates :house_number, presence: true, length: { maximum: 20 }
+  validates :woreda, presence: true, length: { maximum: 50 }
+  validates :city, presence: true, length: { maximum: 50 }
+  validates :kebele, length: { maximum: 50 }, allow_blank: true
+  validates :subcity, length: { maximum: 50 }, allow_blank: true
   validates :theory_days_completed, numericality: { greater_than_or_equal_to: 0 }
   validates :practical_days_completed, numericality: { greater_than_or_equal_to: 0 }
   validates :mock_test_score, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
