@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   # API v1 routes
   namespace :api do
     namespace :v1 do
+      resources :batches, only: [:index, :show, :create]
+      resources :license_categories, only: [:index]
       resources :students, only: [:index, :show, :create] do
         resources :exam_bookings, only: [:index, :show, :create, :update] do
           post :cancel, on: :member
