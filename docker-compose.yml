@@ -43,6 +43,8 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
       DATABASE_NAME: ${DATABASE_NAME:-backend_development}
       DEVISE_JWT_SECRET_KEY: ${DEVISE_JWT_SECRET_KEY:-}
+      # Run the Solid Queue worker inside the Puma web process (simplest for dev).
+      SOLID_QUEUE_IN_PUMA: "true"
     # Host port configurable to avoid clashing with other local services on 8080.
     ports:
       - "${RAILS_PUBLISHED_PORT:-8080}:8080"

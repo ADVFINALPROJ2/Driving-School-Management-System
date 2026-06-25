@@ -53,6 +53,13 @@ Rails.application.configure do
   # Highlight code that enqueued background job in logs.
   config.active_job.verbose_enqueue_logs = true
 
+  # Run background jobs through Solid Queue (durable, DB-backed) instead of the
+  # default in-memory :async adapter. Solid Queue's tables live in the separate
+  # `queue` database (see config/database.yml). Start a worker with `bin/jobs`,
+  # or set SOLID_QUEUE_IN_PUMA=true to run it inside the web process.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
+
   # Highlight code that triggered redirect in logs.
   config.action_dispatch.verbose_redirect_logs = true
 
