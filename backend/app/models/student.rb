@@ -3,6 +3,7 @@ class Student < ApplicationRecord
 
   belongs_to :batch
   has_many :exam_bookings, dependent: :destroy
+  has_many :invoices, dependent: :destroy
 
   validates :status, presence: true
   validates :student_id, presence: true, uniqueness: true
@@ -49,8 +50,15 @@ class Student < ApplicationRecord
                   guard: :can_start_practical?
       
       after do
-        # Placeholder for Finance::MilestoneTracker integration
-        # Rails.logger.info "Triggering Milestone 2 invoice for Student #{id}"
+        # Trigger MilestoneTracker to generate Milestone 2 invoice
+        tracker = Finance::MilestoneTracker.new(self)
+        result = tracker.generate_milestone_2_invoice
+        
+        if result[:success]
+          Rails.logger.info "Generated Milestone 2 invoice ##{result[:invoice].invoice_number} for Student #{id}"
+        else
+          Rails.logger.warn "Milestone 2 invoice generation failed for Student #{id}: #{result[:errors].join(', ')}"
+        end
       end
     end
 
