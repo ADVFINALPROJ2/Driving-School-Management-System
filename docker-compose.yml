@@ -1,0 +1,87 @@
+version: '3.9'
+
+services:
+  # PostgreSQL 16 Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: driving_school_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backend_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backend/db/data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - driving_school_network
+
+  # Ruby on Rails API Backend
+  rails-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: driving_school_rails_api
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0 -p 8080"
+    environment:
+      RAILS_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: backend_development
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/rails
+      - rails_bundle:/usr/local/bundle
+      - rails_tmp:/rails/tmp
+      - rails_log:/rails/log
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    networks:
+      - driving_school_network
+
+  # Next.js Frontend
+  nextjs-frontend:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile.dev
+    container_name: driving_school_nextjs_frontend
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Client:/app
+      - /app/node_modules
+      - /app/.next
+    stdin_open: true
+    tty: true
+    networks:
+      - driving_school_network
+
+volumes:
+  postgres_data:
+    driver: local
+  rails_bundle:
+    driver: local
+  rails_tmp:
+    driver: local
+  rails_log:
+    driver: local
+
+networks:
+  driving_school_network:
+    driver: bridge
