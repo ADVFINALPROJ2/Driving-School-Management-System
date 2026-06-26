@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 module Lms
+  # Records a daily attendance log for a student and increments their
+  # theory/practical day counter. Also drives AASM state transitions:
+  # registered → theory_in_progress → practical_in_progress → exam_eligible
   class AttendanceRecorder
     attr_reader :student, :params, :errors
 
