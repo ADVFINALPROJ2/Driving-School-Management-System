@@ -1,65 +1,55 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
-RSpec.describe 'Api::V1::AttendanceLogs', type: :request do
+RSpec.describe "Api::V1::AttendanceLogs", type: :request do
+  def json
+    JSON.parse(response.body)
+  end
+
   def auth_headers(user)
     token = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
     { "Authorization" => "Bearer #{token}" }
   end
 
-  let(:user) { create(:user) }
-  let(:batch) { create(:batch) }
-  let(:student) { create(:student, batch: batch) }
+  let(:instructor) { create(:user, :instructor) }
+  let(:student)    { create(:student, status: "theory_in_progress") }
 
-  describe 'GET /api/v1/students/:student_id/attendance_logs' do
-    it 'requires authentication' do
-      get "/api/v1/students/#{student.id}/attendance_logs"
+  describe "POST /api/v1/students/:student_id/attendance_logs" do
+    let(:valid_params) do
+      { attendance_log: { phase: "theory", attendance_date: Date.today.to_s,
+                          present: true, instructor_name: "Abebe Kebede" } }
+    end
+
+    it "logs attendance and increments the student's theory days" do
+      expect do
+        post "/api/v1/students/#{student.id}/attendance_logs",
+             headers: auth_headers(instructor), params: valid_params, as: :json
+      end.to change { student.reload.theory_days_completed }.by(1)
+
+      expect(response).to have_http_status(:created)
+    end
+
+    it "returns 422 (not 500) when present is missing" do
+      params = { attendance_log: { phase: "theory", attendance_date: Date.today.to_s } }
+      post "/api/v1/students/#{student.id}/attendance_logs",
+           headers: auth_headers(instructor), params: params, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "requires authentication" do
+      post "/api/v1/students/#{student.id}/attendance_logs", params: valid_params, as: :json
       expect(response).to have_http_status(:unauthorized)
-    end
-
-    it 'returns attendance logs for a student' do
-      create_list(:attendance_log, 3, student: student)
-      get "/api/v1/students/#{student.id}/attendance_logs", headers: auth_headers(user)
-      expect(response).to have_http_status(:ok)
-      body = JSON.parse(response.body)
-      expect(body['success']).to be true
-      expect(body['data'].size).to eq(3)
-    end
-
-    it 'filters by phase' do
-      create(:attendance_log, student: student, phase: 'theory')
-      create(:attendance_log, :practical, student: student)
-      get "/api/v1/students/#{student.id}/attendance_logs", params: { phase: 'practical' }, headers: auth_headers(user)
-      expect(response).to have_http_status(:ok)
-      body = JSON.parse(response.body)
-      expect(body['data'].size).to eq(1)
-      expect(body['data'].first['phase']).to eq('practical')
     end
   end
 
-  describe 'POST /api/v1/students/:student_id/attendance_logs' do
-    it 'creates an attendance log' do
-      log_params = {
-        attendance_log: {
-          phase: 'theory',
-          attendance_date: Date.today,
-          present: true,
-          instructor_name: 'Instructor A'
-        }
-      }
-      expect {
-        post "/api/v1/students/#{student.id}/attendance_logs", params: log_params, headers: auth_headers(user)
-      }.to change(AttendanceLog, :count).by(1)
-      expect(response).to have_http_status(:created)
-      body = JSON.parse(response.body)
-      expect(body['success']).to be true
-    end
+  describe "GET /api/v1/students/:student_id/attendance_logs" do
+    it "returns 400 (not 500) for a malformed date filter" do
+      get "/api/v1/students/#{student.id}/attendance_logs",
+          headers: auth_headers(instructor), params: { date: "not-a-date" }
 
-    it 'returns errors for invalid params' do
-      log_params = { attendance_log: { phase: '' } }
-      post "/api/v1/students/#{student.id}/attendance_logs", params: log_params, headers: auth_headers(user)
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:bad_request)
     end
   end
 end

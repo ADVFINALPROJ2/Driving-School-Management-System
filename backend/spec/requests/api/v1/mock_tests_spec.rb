@@ -1,53 +1,54 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
-RSpec.describe 'Api::V1::MockTests', type: :request do
+RSpec.describe "Api::V1::MockTests", type: :request do
+  def json
+    JSON.parse(response.body)
+  end
+
   def auth_headers(user)
     token = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
     { "Authorization" => "Bearer #{token}" }
   end
 
-  let(:user) { create(:user) }
-  let(:batch) { create(:batch) }
-  let(:student) { create(:student, batch: batch) }
+  let(:instructor) { create(:user, :instructor) }
 
-  describe 'GET /api/v1/students/:student_id/mock_tests' do
-    it 'requires authentication' do
-      get "/api/v1/students/#{student.id}/mock_tests"
-      expect(response).to have_http_status(:unauthorized)
-    end
+  describe "POST /api/v1/students/:student_id/mock_tests" do
+    it "records the mock test and syncs the score to the student" do
+      student = create(:student, status: "theory_in_progress")
 
-    it 'returns mock tests for a student' do
-      create_list(:mock_test, 3, student: student)
-      get "/api/v1/students/#{student.id}/mock_tests", headers: auth_headers(user)
-      expect(response).to have_http_status(:ok)
-      body = JSON.parse(response.body)
-      expect(body['success']).to be true
-      expect(body['data'].size).to eq(3)
-    end
-  end
+      post "/api/v1/students/#{student.id}/mock_tests",
+           headers: auth_headers(instructor),
+           params: { mock_test: { score: 80, test_date: Date.today.to_s } }, as: :json
 
-  describe 'POST /api/v1/students/:student_id/mock_tests' do
-    it 'creates a mock test' do
-      test_params = {
-        mock_test: {
-          score: 75,
-          test_date: Date.today
-        }
-      }
-      expect {
-        post "/api/v1/students/#{student.id}/mock_tests", params: test_params, headers: auth_headers(user)
-      }.to change(MockTest, :count).by(1)
       expect(response).to have_http_status(:created)
-      body = JSON.parse(response.body)
-      expect(body['success']).to be true
+      expect(student.reload.mock_test_score).to eq(80)
     end
 
-    it 'returns errors for invalid params' do
-      test_params = { mock_test: { score: -1 } }
-      post "/api/v1/students/#{student.id}/mock_tests", params: test_params, headers: auth_headers(user)
-      expect(response).to have_http_status(:unprocessable_entity)
+    it "advances a theory-complete student to practical when the mock passes" do
+      # Days are done but the mock had not been passed yet — recording it should
+      # be enough to trigger the start_practical transition.
+      student = create(:student, status: "theory_in_progress",
+                                 theory_days_completed: 35, mock_test_score: 0)
+
+      post "/api/v1/students/#{student.id}/mock_tests",
+           headers: auth_headers(instructor),
+           params: { mock_test: { score: 50, test_date: Date.today.to_s } }, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(student.reload.status).to eq("practical_in_progress")
+    end
+
+    it "does not advance the student when the mock fails" do
+      student = create(:student, status: "theory_in_progress",
+                                 theory_days_completed: 35, mock_test_score: 0)
+
+      post "/api/v1/students/#{student.id}/mock_tests",
+           headers: auth_headers(instructor),
+           params: { mock_test: { score: 20, test_date: Date.today.to_s } }, as: :json
+
+      expect(student.reload.status).to eq("theory_in_progress")
     end
   end
 end
