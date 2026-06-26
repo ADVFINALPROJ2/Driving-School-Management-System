@@ -10,9 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_25_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_26_103000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "attendance_logs", force: :cascade do |t|
+    t.date "attendance_date", null: false
+    t.datetime "created_at", null: false
+    t.string "digital_signature"
+    t.string "instructor_name"
+    t.boolean "locked", default: false, null: false
+    t.text "notes"
+    t.string "phase", null: false
+    t.boolean "present", default: false, null: false
+    t.bigint "student_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["attendance_date"], name: "index_attendance_logs_on_attendance_date"
+    t.index ["student_id", "phase", "attendance_date"], name: "idx_attendance_unique_per_day", unique: true
+    t.index ["student_id"], name: "index_attendance_logs_on_student_id"
+  end
 
   create_table "batches", force: :cascade do |t|
     t.datetime "approved_at"
@@ -38,7 +54,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_120100) do
     t.string "venue"
     t.index ["scheduled_date"], name: "index_exam_bookings_on_scheduled_date"
     t.index ["status"], name: "index_exam_bookings_on_status"
+    t.index ["student_id", "exam_type", "status"], name: "index_exam_bookings_on_student_exam_type_status"
     t.index ["student_id"], name: "index_exam_bookings_on_student_id"
+  end
+
+  create_table "graduation_records", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "dossier_contents", default: {}
+    t.string "dossier_status", default: "compiling", null: false
+    t.date "graduation_date", null: false
+    t.bigint "student_id", null: false
+    t.string "transfer_destination"
+    t.datetime "updated_at", null: false
+    t.index ["student_id"], name: "index_graduation_records_on_student_id", unique: true
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.date "due_date"
+    t.string "milestone_type", null: false
+    t.datetime "paid_at"
+    t.string "status", default: "pending", null: false
+    t.bigint "student_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["milestone_type"], name: "index_invoices_on_milestone_type"
+    t.index ["status"], name: "index_invoices_on_status"
+    t.index ["student_id"], name: "index_invoices_on_student_id"
   end
 
   create_table "jwt_denylist", force: :cascade do |t|
@@ -47,6 +90,65 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_120100) do
     t.string "jti", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_jwt_denylist_on_jti"
+  end
+
+  create_table "license_upgrades", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "license_issue_date", null: false
+    t.string "license_origin", null: false
+    t.string "prior_license_key", null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "student_id", null: false
+    t.string "target_category", null: false
+    t.boolean "timir_compound_flag", default: false
+    t.datetime "updated_at", null: false
+    t.index ["prior_license_key"], name: "index_license_upgrades_on_prior_license_key", unique: true
+    t.index ["status"], name: "index_license_upgrades_on_status"
+    t.index ["student_id"], name: "index_license_upgrades_on_student_id"
+  end
+
+  create_table "mock_tests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "result", default: "pending", null: false
+    t.integer "score", null: false
+    t.bigint "student_id", null: false
+    t.date "test_date", null: false
+    t.datetime "updated_at", null: false
+    t.index ["student_id"], name: "index_mock_tests_on_student_id"
+    t.index ["test_date"], name: "index_mock_tests_on_test_date"
+  end
+
+  create_table "payroll_entries", force: :cascade do |t|
+    t.integer "active_student_loads", default: 0, null: false
+    t.integer "active_training_days", default: 0, null: false
+    t.decimal "base_pay", precision: 10, scale: 2, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "paid_at"
+    t.date "period_end", null: false
+    t.date "period_start", null: false
+    t.string "status", default: "draft", null: false
+    t.decimal "total_pay", precision: 10, scale: 2, default: "0.0", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["status"], name: "index_payroll_entries_on_status"
+    t.index ["user_id", "period_start", "period_end"], name: "idx_payroll_unique_per_period", unique: true
+    t.index ["user_id"], name: "index_payroll_entries_on_user_id"
+  end
+
+  create_table "renewal_requests", force: :cascade do |t|
+    t.string "blood_type"
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "eye_acuity_test"
+    t.string "full_name", null: false
+    t.boolean "medical_data_updated", default: false
+    t.string "phone_number", null: false
+    t.string "prior_license_number", null: false
+    t.string "registered_kifle_ketema", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["prior_license_number"], name: "index_renewal_requests_on_prior_license_number"
+    t.index ["status"], name: "index_renewal_requests_on_status"
   end
 
   create_table "students", force: :cascade do |t|
@@ -104,9 +206,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_120100) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
-    t.check_constraint "role::text = ANY (ARRAY['admin'::character varying, 'instructor'::character varying, 'clerk'::character varying, 'student'::character varying]::text[])", name: "user_role_check"
+    t.check_constraint "role::text = ANY (ARRAY['admin'::character varying::text, 'instructor'::character varying::text, 'clerk'::character varying::text, 'student'::character varying::text])", name: "user_role_check"
   end
 
+  add_foreign_key "attendance_logs", "students"
   add_foreign_key "exam_bookings", "students"
+  add_foreign_key "graduation_records", "students"
+  add_foreign_key "invoices", "students"
+  add_foreign_key "license_upgrades", "students"
+  add_foreign_key "mock_tests", "students"
+  add_foreign_key "payroll_entries", "users"
   add_foreign_key "students", "batches"
 end
