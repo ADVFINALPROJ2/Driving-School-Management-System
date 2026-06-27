@@ -8,7 +8,10 @@ RSpec.describe 'Api::V1::LmsProgress', type: :request do
     { "Authorization" => "Bearer #{token}" }
   end
 
+  let(:admin)      { create(:user, :admin) }
+  let(:clerk)      { create(:user, :clerk) }
   let(:instructor) { create(:user, :instructor) }
+  let(:student_user) { create(:user) }
   let(:batch) { create(:batch) }
   let(:student) { create(:student, batch: batch) }
 
@@ -19,9 +22,18 @@ RSpec.describe 'Api::V1::LmsProgress', type: :request do
     end
 
     it 'forbids student role' do
-      student_user = create(:user)
       get "/api/v1/students/#{student.id}/lms_progress", headers: auth_headers(student_user)
       expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'allows admin to view progress' do
+      get "/api/v1/students/#{student.id}/lms_progress", headers: auth_headers(admin)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'allows clerk to view progress' do
+      get "/api/v1/students/#{student.id}/lms_progress", headers: auth_headers(clerk)
+      expect(response).to have_http_status(:ok)
     end
 
     it 'returns progress for a student' do
@@ -29,8 +41,8 @@ RSpec.describe 'Api::V1::LmsProgress', type: :request do
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       expect(body['success']).to be true
-      expect(body['data']).to have_key('theory_percent')
-      expect(body['data']).to have_key('practical_percent')
+      expect(body['data']).to have_key('theory')
+      expect(body['data']).to have_key('practical')
     end
 
     it 'returns 404 for non-existent student' do

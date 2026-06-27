@@ -8,7 +8,10 @@ RSpec.describe 'Api::V1::Batches', type: :request do
     { "Authorization" => "Bearer #{token}" }
   end
 
-  let(:clerk) { create(:user, :clerk) }
+  let(:admin)      { create(:user, :admin) }
+  let(:clerk)      { create(:user, :clerk) }
+  let(:instructor) { create(:user, :instructor) }
+  let(:student_user) { create(:user) }
 
   describe 'GET /api/v1/batches' do
     it 'requires authentication' do
@@ -17,9 +20,23 @@ RSpec.describe 'Api::V1::Batches', type: :request do
     end
 
     it 'forbids student role' do
-      student_user = create(:user)
       get '/api/v1/batches', headers: auth_headers(student_user)
       expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'allows admin to view batches' do
+      create_list(:batch, 2)
+      get '/api/v1/batches', headers: auth_headers(admin)
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['success']).to be true
+      expect(body['data']['batches'].size).to eq(2)
+    end
+
+    it 'allows instructor to view batches' do
+      create_list(:batch, 2)
+      get '/api/v1/batches', headers: auth_headers(instructor)
+      expect(response).to have_http_status(:ok)
     end
 
     it 'returns all batches when authenticated as clerk' do
@@ -36,6 +53,11 @@ RSpec.describe 'Api::V1::Batches', type: :request do
   describe 'GET /api/v1/batches/:id' do
     let(:batch) { create(:batch) }
 
+    it 'requires authentication' do
+      get "/api/v1/batches/#{batch.id}"
+      expect(response).to have_http_status(:unauthorized)
+    end
+
     it 'returns a specific batch' do
       get "/api/v1/batches/#{batch.id}", headers: auth_headers(clerk)
       expect(response).to have_http_status(:ok)
@@ -49,10 +71,19 @@ RSpec.describe 'Api::V1::Batches', type: :request do
   end
 
   describe 'POST /api/v1/batches' do
+    it 'requires authentication' do
+      post '/api/v1/batches', params: { batch: { name: 'Test' } }
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'forbids student role' do
+      post '/api/v1/batches', params: { batch: { name: 'Test' } }, headers: auth_headers(student_user)
+      expect(response).to have_http_status(:forbidden)
+    end
+
     it 'creates a new batch' do
-      batch_params = { batch: { name: 'Batch Test' } }
       expect {
-        post '/api/v1/batches', params: batch_params, headers: auth_headers(clerk)
+        post '/api/v1/batches', params: { batch: { name: 'Batch Test' } }, headers: auth_headers(clerk)
       }.to change(Batch, :count).by(1)
       expect(response).to have_http_status(:created)
     end
