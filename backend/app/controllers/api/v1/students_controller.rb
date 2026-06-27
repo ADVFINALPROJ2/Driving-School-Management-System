@@ -66,6 +66,7 @@ module Api
           :student_id,
           :document_id,
           :identification_document,
+          :eye_acuity_test,
           :first_name,
           :middle_name,
           :last_name,
