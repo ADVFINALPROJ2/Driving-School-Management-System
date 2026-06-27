@@ -4,22 +4,25 @@ module Api
   module V1
     class ExamBookingsController < BaseController
       before_action :set_student
-      before_action :set_exam_booking, only: %i[show update cancel]
+      before_action :set_exam_booking, only: %i[show update cancel record_result]
       before_action :validate_eligibility, only: %i[create]
 
       # GET /api/v1/students/:student_id/exam_bookings
       def index
+        authorize ExamBooking
         @exam_bookings = @student.exam_bookings.order(scheduled_date: :asc)
         render_success(@exam_bookings)
       end
 
       # GET /api/v1/students/:student_id/exam_bookings/:id
       def show
+        authorize @exam_booking
         render_success(@exam_booking)
       end
 
       # POST /api/v1/students/:student_id/exam_bookings
       def create
+        authorize ExamBooking
         @exam_booking = @student.exam_bookings.new(exam_booking_params)
 
         if @exam_booking.save
@@ -33,6 +36,7 @@ module Api
 
       # PATCH/PUT /api/v1/students/:student_id/exam_bookings/:id
       def update
+        authorize @exam_booking
         if @exam_booking.update(exam_booking_params)
           render_success(@exam_booking)
         else
@@ -42,6 +46,7 @@ module Api
 
       # POST /api/v1/students/:student_id/exam_bookings/:id/cancel
       def cancel
+        authorize @exam_booking
         if @exam_booking.cancel!
           render_success(@exam_booking)
         else
@@ -51,6 +56,7 @@ module Api
 
       # POST /api/v1/students/:student_id/exam_bookings/:id/record_result
       def record_result
+        authorize @exam_booking
         result_params = params.require(:exam_booking).permit(:score, :notes)
 
         ActiveRecord::Base.transaction do

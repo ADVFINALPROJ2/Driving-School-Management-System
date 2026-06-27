@@ -7,6 +7,7 @@ module Api
 
       # GET /api/v1/students
       def index
+        authorize Student
         page     = params.fetch(:page, 1).to_i
         per_page = params.fetch(:per_page, 50).to_i.clamp(1, 200)
         @students = Student.order(:created_at).page(page).per(per_page)
@@ -18,11 +19,13 @@ module Api
 
       # GET /api/v1/students/:id
       def show
+        authorize Student
         render_success(@student)
       end
 
       # POST /api/v1/students
       def create
+        authorize Student
         @student = Student.new(student_params)
 
         if @student.save
