@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -124,6 +124,12 @@ export function StudentForm({ initialData, onSuccess }: Props) {
           verified: false,
         },
   });
+
+  useEffect(() => {
+    const stamp = Date.now().toString().slice(-6);
+    setValue("student_id", `STU${stamp}`);
+    setValue("document_id", `DOC${stamp}`);
+  }, [setValue]);
 
   const watchedBloodType = watch("blood_type");
   const watchedVerified = watch("verified");
