@@ -156,13 +156,25 @@ export async function createStudentFromEnrollment(
   return createStudent(payload);
 }
 
-// GET /api/v1/students — returns the full student list.
-export async function getStudents(): Promise<ApiResponse<Student[]>> {
+// GET /api/v1/students — paginated student list with optional search/filter.
+export async function getStudents(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+}): Promise<ApiResponse<{ students: Student[]; meta: { page: number; per_page: number; total: number } }>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/students`, { headers: authHeaders() });
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.per_page) query.set("per_page", String(params.per_page));
+    if (params?.search) query.set("search", params.search);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/v1/students${qs ? `?${qs}` : ""}`;
+    const response = await fetch(url, { headers: authHeaders() });
     const json = await response.json();
     if (!response.ok) return { success: false, error: json.error || "Failed to fetch students" };
-    return { success: true, data: json };
+    return { success: true, data: json.data ?? json };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Network error" };
   }
@@ -210,6 +222,79 @@ export async function updateStudent(
     return { success: false, error: err instanceof Error ? err.message : "Network error" };
   }
 }
+
+// GET /api/v1/students/:id/invoices — returns a student's invoices.
+export async function getStudentInvoices(id: number): Promise<ApiResponse<StudentInvoice[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${id}/invoices`, { headers: authHeaders() });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || "Failed to fetch invoices" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// GET /api/v1/students/:id/attendance_logs — returns a student's attendance logs.
+export async function getStudentAttendance(id: number): Promise<ApiResponse<AttendanceLog[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${id}/attendance_logs`, { headers: authHeaders() });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || "Failed to fetch attendance" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// GET /api/v1/students/:id/lms_progress — returns a student's LMS progress.
+export async function getStudentLmsProgress(id: number): Promise<ApiResponse<LmsProgress>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${id}/lms_progress`, { headers: authHeaders() });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || "Failed to fetch LMS progress" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export type StudentInvoice = {
+  id: number;
+  invoice_number: string;
+  student_id: number;
+  student_name: string | null;
+  invoice_type: string;
+  amount: number;
+  status: string;
+  due_date: string;
+  paid_at: string | null;
+  payment_method: string | null;
+  payment_reference: string | null;
+  description: string | null;
+  is_overdue: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AttendanceLog = {
+  id: number;
+  student_id: number;
+  phase: string;
+  attendance_date: string;
+  present: boolean;
+  instructor_name: string | null;
+  created_at: string;
+};
+
+export type LmsProgress = {
+  theory_completed: boolean;
+  theory_percentage: number;
+  practical_completed: boolean;
+  practical_percentage: number;
+  mock_test_status: string;
+  next_milestone: string;
+};
 
 // Type shape returned by the backend Student index/show endpoints.
 // Mirrors the Rails model attributes from backend/app/models/student.rb.

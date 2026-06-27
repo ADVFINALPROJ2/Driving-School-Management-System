@@ -1,21 +1,8 @@
-// Students list page — the main data-browsing view of the dashboard.
-// Fetches all students and batches on mount, then provides:
-// 1. Four summary stat cards (Total, Batches, Learning, Graduated)
-// 2. Search bar (by name or student ID)
-// 3. Status filter dropdown (registered / theory / practical / exam-ready / graduated)
-// 4. Verification filter (all / verified / unverified)
-// 5. Sortable table columns (Student ID, Full Name, Status) with asc/desc toggle
-// 6. Click-to-open StudentDetailModal for viewing / verifying individual records
-//
-// Uses skeleton loading placeholders (animate-pulse) for the stat cards and
-// table rows while data is fetching. Empty state shows a contextual message
-// depending on whether filters are active or the list is genuinely empty.
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search, Users, Layers, BookOpen, GraduationCap, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Users, Layers, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StudentDetailModal } from "@/components/student-detail-modal";
 import { getStudents, getBatches, type Student, type Batch } from "@/lib/api";
+import { DataTable, type Column } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 
 const statusOptions = [
@@ -39,7 +27,7 @@ const statusOptions = [
   { value: "graduated", label: "Graduated" },
 ];
 
-const statusBadge: Record<string, "secondary" | "warning" | "success" | "default"> = {
+const statusBadgeVariant: Record<string, "secondary" | "warning" | "success" | "default"> = {
   registered: "secondary",
   theory_in_progress: "warning",
   practical_in_progress: "warning",
@@ -55,40 +43,45 @@ const statusLabels: Record<string, string> = {
   graduated: "Graduated",
 };
 
-type SortKey = "student_id" | "full_name" | "status";
-
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [verifiedFilter, setVerifiedFilter] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("student_id");
-  const [sortAsc, setSortAsc] = useState(true);
+  const perPage = 20;
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [sRes, bRes] = await Promise.all([getStudents(), getBatches()]);
-    if (sRes.success && sRes.data) setStudents(sRes.data);
-    if (bRes.success && bRes.data) setBatches(bRes.data);
-    setLoading(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    Promise.all([getStudents({ page: 1, per_page: 10000 }), getBatches()]).then(([sRes, bRes]) => {
+      if (sRes.success && sRes.data) {
+        const items = Array.isArray(sRes.data) ? sRes.data : (sRes.data as { students?: Student[] }).students ?? [];
+        setAllStudents(items);
+      }
+      if (bRes.success && bRes.data) setBatches(bRes.data);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
   };
 
-  useEffect(() => { fetchData(); }, []);
-
-  const stats = useMemo(() => ({
-    total: students.length,
-    batches: batches.length,
-    learning: students.filter((s) => s.status !== "graduated").length,
-    graduated: students.filter((s) => s.status === "graduated").length,
-  }), [students, batches]);
-
   const filtered = useMemo(() => {
-    let list = [...students];
-    if (search) {
-      const q = search.toLowerCase();
+    let list = allStudents;
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (s) =>
           s.student_id.toLowerCase().includes(q) ||
@@ -98,30 +91,82 @@ export default function StudentsPage() {
       );
     }
     if (statusFilter) list = list.filter((s) => s.status === statusFilter);
-    if (verifiedFilter === "verified") list = list.filter((s) => s.verified);
-    if (verifiedFilter === "unverified") list = list.filter((s) => !s.verified);
-    list.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "student_id") cmp = a.student_id.localeCompare(b.student_id);
-      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
-      else {
-        const aName = `${a.first_name} ${a.middle_name} ${a.last_name}`;
-        const bName = `${b.first_name} ${b.middle_name} ${b.last_name}`;
-        cmp = aName.localeCompare(bName);
-      }
-      return sortAsc ? cmp : -cmp;
-    });
     return list;
-  }, [students, search, statusFilter, verifiedFilter, sortKey, sortAsc]);
+  }, [allStudents, debouncedSearch, statusFilter]);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortAsc(!sortAsc);
-    else { setSortKey(key); setSortAsc(true); }
-  };
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
 
-  const handleVerified = (id: number) => {
-    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, verified: true, verified_at: new Date().toISOString() } : s)));
-  };
+  const paginated = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filtered.slice(start, start + perPage);
+  }, [filtered, page]);
+
+  const stats = useMemo(() => ({
+    total: allStudents.length,
+    batches: batches.length,
+    learning: allStudents.filter((s) => s.status !== "graduated").length,
+    graduated: allStudents.filter((s) => s.status === "graduated").length,
+  }), [allStudents, batches]);
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(1, page - 2);
+    const end = Math.min(totalPages, page + 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }, [page, totalPages]);
+
+  const columns: Column<Student>[] = useMemo(() => [
+    {
+      header: "Student ID",
+      accessorKey: "student_id",
+      className: "font-mono text-xs text-slate-600",
+    },
+    {
+      header: "Name",
+      cell: (s) => (
+        <span className="font-medium text-[#0f172a]">
+          {s.first_name} {s.middle_name} {s.last_name}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (s) => (
+        <Badge variant={statusBadgeVariant[s.status] ?? "secondary"}>
+          {statusLabels[s.status] ?? s.status}
+        </Badge>
+      ),
+    },
+    {
+      header: "Enrollment Date",
+      cell: (s) => (
+        <span className="text-slate-500">
+          {new Date(s.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      cell: (s) => (
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/students/${s.id}`}>
+              <Eye className="h-4 w-4" />
+              View
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/students/${s.id}/edit`}>
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
 
   const statCards = [
     { label: "Total Students", value: stats.total, icon: Users, color: "bg-blue-500" },
@@ -177,7 +222,7 @@ export default function StudentsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusFilter}>
           <SelectTrigger className="w-[170px]">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
@@ -187,101 +232,60 @@ export default function StudentsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={verifiedFilter} onValueChange={setVerifiedFilter}>
-          <SelectTrigger className="w-[170px]">
-            <SelectValue placeholder="All Verification" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Verification</SelectItem>
-            <SelectItem value="verified">Verified</SelectItem>
-            <SelectItem value="unverified">Unverified</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort("student_id")} className="flex items-center gap-1 hover:text-[#0f172a]">
-                    Student ID <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort("full_name")} className="flex items-center gap-1 hover:text-[#0f172a]">
-                    Full Name <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort("status")} className="flex items-center gap-1 hover:text-[#0f172a]">
-                    Status <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">Verification</th>
-                <th className="px-4 py-3">License Category</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <td key={j} className="px-4 py-3">
-                        <span className="inline-block h-4 w-full animate-pulse rounded bg-slate-200" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-slate-400">
-                    {search || statusFilter || verifiedFilter
-                      ? "No students match your filters."
-                      : "No students found."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((s) => (
-                  <tr
-                    key={s.id}
-                    onClick={() => setSelectedStudent(s)}
-                    className="cursor-pointer border-b last:border-0 transition-colors hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{s.student_id}</td>
-                    <td className="px-4 py-3 font-medium text-[#0f172a]">
-                      {s.first_name} {s.middle_name} {s.last_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={statusBadge[s.status] ?? "secondary"}>
-                        {statusLabels[s.status] ?? s.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.verified ? (
-                        <Badge variant="success">Verified</Badge>
-                      ) : (
-                        <Badge variant="warning">Unverified</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">&mdash;</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        emptyMessage={
+          debouncedSearch || statusFilter
+            ? "No students match your filters."
+            : "No students found."
+        }
+      />
 
-      {/* Detail Modal */}
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          {pageNumbers.map((p) => (
+            <Button
+              key={p}
+              variant={p === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPage(p)}
+            >
+              {p}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Detail Modal (quick-view from other parts of the app) */}
       {selectedStudent && (
         <StudentDetailModal
           student={selectedStudent}
           open={true}
           onClose={() => setSelectedStudent(null)}
-          onVerified={handleVerified}
         />
       )}
     </div>
