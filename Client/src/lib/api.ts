@@ -259,6 +259,73 @@ export async function getStudentLmsProgress(id: number): Promise<ApiResponse<Lms
   }
 }
 
+// GET /api/v1/invoices — paginated, filterable invoice list.
+export async function getInvoices(params?: {
+  status?: string;
+  invoice_type?: string;
+  student_id?: number;
+  page?: number;
+  per_page?: number;
+  search?: string;
+}): Promise<ApiResponse<{ invoices: StudentInvoice[]; meta: PaginationMeta }>> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.status) query.set("status", params.status);
+    if (params?.invoice_type) query.set("invoice_type", params.invoice_type);
+    if (params?.student_id) query.set("student_id", String(params.student_id));
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.per_page) query.set("per_page", String(params.per_page));
+    if (params?.search) query.set("search", params.search);
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/v1/invoices${qs ? `?${qs}` : ""}`;
+    const response = await fetch(url, { headers: authHeaders() });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || "Failed to fetch invoices" };
+    const items = Array.isArray(json.data) ? json.data : [];
+    return { success: true, data: { invoices: items, meta: json.meta } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// GET /api/v1/invoices/:id — returns a single invoice.
+export async function getInvoice(id: number): Promise<ApiResponse<StudentInvoice>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/invoices/${id}`, { headers: authHeaders() });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || "Invoice not found" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// POST /api/v1/invoices/:id/mark_paid — marks an invoice as paid.
+export async function markInvoiceAsPaid(
+  id: number,
+  payload: { payment_method: string; payment_reference?: string; paid_at?: string },
+): Promise<ApiResponse<StudentInvoice>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/invoices/${id}/mark_paid`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error || json.errors?.[0] || "Failed to mark as paid" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export type PaginationMeta = {
+  current_page: number;
+  total_pages: number;
+  total_count: number;
+  per_page: number;
+};
+
 export type StudentInvoice = {
   id: number;
   invoice_number: string;

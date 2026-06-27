@@ -8,12 +8,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Users, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// TODO: role-gate nav items when RBAC is wired (Admin sees all, Clerk sees Invoices/Students)
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/students", label: "Students", icon: Users },
+  { href: "/invoices", label: "Invoices", icon: Receipt },
 ];
 
 export function Sidebar() {
