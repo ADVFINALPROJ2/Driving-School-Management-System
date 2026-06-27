@@ -1,35 +1,45 @@
-// Auth utilities for client-side role checking.
-// Decodes the JWT payload (base64) to extract user role and other claims.
-// TODO: Replace with a proper auth library / middleware-based role check
-//       once backend RBAC is fully integrated (Pundit roles).
+export type UserRole = "admin" | "receptionist" | "instructor";
 
-import { getToken } from "@/lib/api";
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: UserRole;
+}
 
-type JwtPayload = {
-  sub?: number;
-  email?: string;
-  role?: string;
-  exp?: number;
-  [key: string]: unknown;
-};
+const TOKEN_KEY = "driving_school_token";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-function decodeJwt(token: string): JwtPayload | null {
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function removeToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function getCurrentUser(): Promise<User | null> {
   try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    return JSON.parse(atob(payload)) as JwtPayload;
+    const token = getToken();
+    if (!token) return null;
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      removeToken();
+      return null;
+    }
+
+    const json = await response.json();
+    return json as User;
   } catch {
     return null;
   }
-}
-
-export function getUserRole(): string | null {
-  const token = getToken();
-  if (!token) return null;
-  const payload = decodeJwt(token);
-  return payload?.role ?? null;
-}
-
-export function isAdmin(): boolean {
-  return getUserRole() === "admin";
 }
