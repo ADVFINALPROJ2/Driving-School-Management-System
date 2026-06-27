@@ -52,6 +52,9 @@ Rails.application.routes.draw do
         post :mark_paid, on: :member
       end
 
+      # Finance Module - Payroll Entries (instructor salary view)
+      resources :payroll_entries, only: [ :index, :show ]
+
       # Finance Module - Financial Reports
       namespace :financial_reports do
         get :summary
