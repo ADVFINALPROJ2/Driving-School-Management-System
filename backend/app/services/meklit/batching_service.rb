@@ -26,6 +26,8 @@ module Meklit
 
       # Step 2: Generate payload
       payload = generate_payload
+      # Persist the generated payload for audit trail
+      batch.update!(export_payload: payload)
       logger.info "[BatchingService] Payload generated for #{batch.students.count} students"
 
       # Step 3: Submit to ERTA API
