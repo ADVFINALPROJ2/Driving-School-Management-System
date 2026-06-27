@@ -8,12 +8,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/students", label: "Students", icon: Users },
+  { href: "/financial-reports", label: "Financial Reports", icon: BarChart3 },
+  { href: "/payroll", label: "Payroll", icon: Wallet },
 ];
 
 export function Sidebar() {
