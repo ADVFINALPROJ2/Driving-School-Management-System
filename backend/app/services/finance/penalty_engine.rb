@@ -99,12 +99,10 @@ module Finance
     end
 
     def fetch_last_attendance_date
-      # TODO: Replace with actual Attendance model query when implemented
-      # For now, return a mock date or nil
-      # Attendance.where(student: student).order(date: :desc).first&.date
-      
-      # Mock implementation - replace when Attendance model is available
-      student.updated_at.to_date
+      AttendanceLog.where(student: student, present: true)
+                   .order(attendance_date: :desc)
+                   .first
+                   &.attendance_date
     end
 
     def create_attendance_penalty_invoice(days_gap)
