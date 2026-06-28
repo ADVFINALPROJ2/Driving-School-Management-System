@@ -78,10 +78,6 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           <LogOut className="h-5 w-5" />
         </Button>
       </div>
-
-      <Button variant="ghost" size="icon" onClick={logout} aria-label="Sign out">
-        <LogOut className="h-4 w-4" />
-      </Button>
     </header>
   );
 }
