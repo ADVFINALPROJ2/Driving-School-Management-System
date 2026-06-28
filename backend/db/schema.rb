@@ -89,7 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_000002) do
     t.integer "upgrade_discount_percentage", default: 30
     t.index ["is_active"], name: "index_courses_on_is_active"
     t.index ["license_category"], name: "index_courses_on_license_category"
-    t.check_constraint "license_category::text = ANY (ARRAY['A'::character varying::text, 'B'::character varying::text, 'C'::character varying::text, 'D'::character varying::text, 'E'::character varying::text])", name: "check_license_category"
+    t.check_constraint "license_category::text = ANY (ARRAY['A'::character varying, 'B'::character varying, 'C'::character varying, 'D'::character varying, 'E'::character varying]::text[])", name: "check_license_category"
   end
 
   create_table "exam_bookings", force: :cascade do |t|
@@ -263,7 +263,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_000002) do
     t.index ["penalty_end_date"], name: "index_students_on_penalty_end_date"
     t.index ["student_id"], name: "index_students_on_student_id", unique: true
     t.index ["under_penalty"], name: "index_students_on_under_penalty"
-    t.check_constraint "pricing_tier::text = ANY (ARRAY['standard'::character varying::text, 'premium'::character varying::text, 'fast_track'::character varying::text])", name: "check_pricing_tier"
+    t.check_constraint "pricing_tier::text = ANY (ARRAY['standard'::character varying, 'premium'::character varying, 'fast_track'::character varying]::text[])", name: "check_pricing_tier"
   end
 
   create_table "users", force: :cascade do |t|

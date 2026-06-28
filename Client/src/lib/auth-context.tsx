@@ -15,6 +15,7 @@ import {
   logout as apiLogout,
   register as apiRegister,
   getMe,
+  setToken,
   clearToken,
   getToken,
   refreshToken as apiRefresh,
@@ -56,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.success && result.data) {
       setUser(result.data.user);
       setTokenState(result.data.token);
+      setToken(result.data.token);
+      document.cookie = `token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${result.data.user.role}; path=/; max-age=86400; SameSite=Lax`;
       return null;
     }
     return result.error || "Login failed";
@@ -65,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await apiLogout();
     setUser(null);
     setTokenState(null);
+    clearToken();
+    document.cookie = "token=; path=/; max-age=0";
+    document.cookie = "role=; path=/; max-age=0";
     router.push("/login");
   }, [router]);
 
@@ -73,6 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.success && result.data) {
       setUser(result.data.user);
       setTokenState(result.data.token);
+      setToken(result.data.token);
+      document.cookie = `token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${result.data.user.role}; path=/; max-age=86400; SameSite=Lax`;
       return null;
     }
     return result.error || "Registration failed";
@@ -115,11 +125,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiRefresh().then((r) => {
         if (r.success && r.data) {
           setTokenState(r.data.token);
+          setToken(r.data.token);
           setUser(r.data.user);
+          document.cookie = `token=${r.data.token}; path=/; max-age=86400; SameSite=Lax`;
         } else {
           clearToken();
           setTokenState(null);
           setUser(null);
+          document.cookie = "token=; path=/; max-age=0";
+          document.cookie = "role=; path=/; max-age=0";
         }
       });
     }
@@ -128,11 +142,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiRefresh().then((r) => {
         if (r.success && r.data) {
           setTokenState(r.data.token);
+          setToken(r.data.token);
           setUser(r.data.user);
+          document.cookie = `token=${r.data.token}; path=/; max-age=86400; SameSite=Lax`;
         } else {
           clearToken();
           setTokenState(null);
           setUser(null);
+          document.cookie = "token=; path=/; max-age=0";
+          document.cookie = "role=; path=/; max-age=0";
         }
       });
     }, refreshIn);

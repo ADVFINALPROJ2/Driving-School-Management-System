@@ -259,7 +259,7 @@ export async function getStudents(params?: { page?: number; per_page?: number; s
     const response = await fetch(url, { headers: authHeaders() });
     const json = await response.json();
     if (!response.ok) return { success: false, error: json.error || "Failed to fetch students" };
-    return { success: true, data: json.data ?? json };
+    return { success: true, data: json.data?.students ?? json.data ?? json };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Network error" };
   }
