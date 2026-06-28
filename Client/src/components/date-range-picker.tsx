@@ -3,39 +3,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-<<<<<<< HEAD
-interface DateRangePickerProps {
-  startDate: string;
-  endDate: string;
-  onStartDateChange: (date: string) => void;
-  onEndDateChange: (date: string) => void;
-}
-
-export function DateRangePicker({
-  startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange,
-}: DateRangePickerProps) {
-  return (
-    <div className="flex items-end gap-3">
-      <div className="space-y-2">
-        <Label htmlFor="start-date">From</Label>
-        <Input
-          id="start-date"
-          type="date"
-          value={startDate}
-          onChange={(e) => onStartDateChange(e.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="end-date">To</Label>
-        <Input
-          id="end-date"
-          type="date"
-          value={endDate}
-          onChange={(e) => onEndDateChange(e.target.value)}
-=======
 type DateRangePickerProps = {
   from: string;
   to: string;
@@ -63,7 +30,6 @@ export function DateRangePicker({ from, to, onRangeChange }: DateRangePickerProp
           value={to}
           onChange={(e) => onRangeChange(from, e.target.value)}
           className="w-40"
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
         />
       </div>
     </div>

@@ -23,6 +23,12 @@ import {
   type User,
 } from "@/lib/api";
 import { loadLicenseCategories } from "@/lib/enrollment-types";
+import {
+  MOCK_USERS,
+  generateMockToken,
+  decodeMockToken,
+  isMockAuth,
+} from "@/lib/mock-users";
 
 type RegisterParams = {
   email: string;
@@ -53,6 +59,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !isLoading && user !== null && token !== null;
 
   const login = useCallback(async (email: string, password: string): Promise<string | null> => {
+    if (isMockAuth()) {
+      const mockUser = MOCK_USERS[email];
+      if (!mockUser || mockUser.password !== password) {
+        return "Invalid email or password";
+      }
+      const token = generateMockToken(mockUser.user);
+      setUser(mockUser.user);
+      setTokenState(token);
+      setToken(token);
+      document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${mockUser.user.role}; path=/; max-age=86400; SameSite=Lax`;
+      return null;
+    }
+
     const result = await apiLogin(email, password);
     if (result.success && result.data) {
       setUser(result.data.user);
@@ -67,7 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await apiLogout();
+    if (!isMockAuth()) {
+      await apiLogout();
+    }
     setUser(null);
     setTokenState(null);
     clearToken();
@@ -77,6 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const register = useCallback(async (params: RegisterParams): Promise<string | null> => {
+    if (isMockAuth()) {
+      return "Registration is not available in mock mode. Use one of the predefined mock accounts.";
+    }
     const result = await apiRegister(params);
     if (result.success && result.data) {
       setUser(result.data.user);
@@ -98,6 +123,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     startTransition(() => setTokenState(storedToken));
 
+    if (isMockAuth()) {
+      const user = decodeMockToken(storedToken);
+      if (user) {
+        setUser(user);
+      } else {
+        clearToken();
+        setTokenState(null);
+      }
+      setIsLoading(false);
+      return;
+    }
+
     getMe().then((result) => {
       startTransition(() => {
         if (result.success && result.data) {
@@ -116,6 +153,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Auto-refresh the JWT before it expires.
   useEffect(() => {
     if (!token) return;
+
+    if (isMockAuth()) {
+      const user = decodeMockToken(token);
+      if (user) {
+        const newToken = generateMockToken(user);
+        setTokenState(newToken);
+        setToken(newToken);
+        document.cookie = `token=${newToken}; path=/; max-age=86400; SameSite=Lax`;
+      }
+      return;
+    }
 
     const expiresIn = getJwtExpiresIn(token);
     // Refresh 5 minutes before expiry, or at 80% lifetime — whichever is sooner.

@@ -257,10 +257,11 @@ export default function InvoicesPage() {
 
       {payingInvoice && (
         <PaymentRecordModal
-          invoice={payingInvoice}
+          invoiceId={payingInvoice.id}
+          invoiceAmount={payingInvoice.amount}
           open={true}
           onClose={() => setPayingInvoice(null)}
-          onSuccess={() => {
+          onSubmit={() => {
             setPayingInvoice(null);
             loadInvoices();
           }}

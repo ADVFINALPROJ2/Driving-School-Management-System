@@ -46,7 +46,7 @@ export const MOCK_USERS: Record<string, { password: string; user: User }> = {
       id: 4,
       email: "staff@driving-school.com",
       full_name: "Mike Staff",
-      role: "staff",
+      role: "clerk",
       phone_number: "+251911000004",
       is_qualified_instructor: false,
       created_at: new Date().toISOString(),
@@ -73,4 +73,36 @@ export function useMockAuth() {
     enabled: USE_MOCK_AUTH,
     users: MOCK_USERS,
   };
+}
+
+/** Generates a pseudo-JWT for mock auth. The token embeds the full user object
+ *  so it can be restored on page refresh without calling the backend. */
+export function generateMockToken(user: User): string {
+  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = btoa(
+    JSON.stringify({
+      sub: user.email,
+      user,
+      exp: Math.floor(Date.now() / 1000) + 86400 * 7,
+      iat: Math.floor(Date.now() / 1000),
+    }),
+  );
+  return `${header}.${payload}.mock_sig`;
+}
+
+/** Decodes a mock token back to a User object. Returns null for invalid tokens. */
+export function decodeMockToken(token: string): User | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Returns true when the environment is configured for mock auth. */
+export function isMockAuth(): boolean {
+  return process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true";
 }

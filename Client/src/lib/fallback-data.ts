@@ -1,16 +1,36 @@
-import type { Invoice, FinancialSummary } from "@/lib/api";
 
-export const MOCK_INVOICES: Invoice[] = [
+export type FinancialSummary = {
+  total_revenue: number;
+  invoice_count: number;
+  average_invoice: number;
+  student_count: number;
+  collections: {
+    total_issued: number;
+    total_collected: number;
+    collection_rate: number;
+    pending_amount: number;
+    overdue_amount: number;
+  };
+  outstanding: {
+    total_outstanding: number;
+    pending_count: number;
+    overdue_count: number;
+  };
+};
+
+export const MOCK_INVOICES = [
   {
     id: 1,
     invoice_number: "INV-001",
     student_name: "Abebe Kebede",
     student_id: 1,
-    type: "registration",
+    invoice_type: "registration",
     amount: 4000,
     status: "paid",
+    milestone_type: "registration",
+    paid_at: "2024-01-10",
     due_date: "2024-01-15",
-    payment_date: "2024-01-10",
+    description: "Registration fee",
     created_at: "2024-01-05",
   },
   {
@@ -18,21 +38,27 @@ export const MOCK_INVOICES: Invoice[] = [
     invoice_number: "INV-002",
     student_name: "Tirunesh Dibaba",
     student_id: 2,
-    type: "milestone_2",
+    invoice_type: "milestone_2",
     amount: 4000,
     status: "unpaid",
+    milestone_type: "milestone_2",
+    paid_at: null,
     due_date: "2024-02-15",
-    created_at: "2024-01-10",
+    description: "Milestone 2 payment",
+    created_at: "2024-02-01",
   },
   {
     id: 3,
     invoice_number: "INV-003",
     student_name: "Haile Gebrselassie",
     student_id: 3,
-    type: "penalty",
-    amount: 300,
+    invoice_type: "milestone_1",
+    amount: 3000,
     status: "overdue",
+    milestone_type: "milestone_1",
+    paid_at: null,
     due_date: "2024-01-20",
+    description: "Milestone 1 payment",
     created_at: "2024-01-15",
   },
 ];

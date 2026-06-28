@@ -57,7 +57,6 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const role = user?.role ?? "admin";
   const role = (user?.role ?? "admin") as Role;
   const navItems = navConfig[role] ?? navConfig.admin;
 
