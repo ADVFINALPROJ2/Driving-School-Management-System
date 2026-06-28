@@ -9,6 +9,8 @@ import {
   getMe,
   type User,
 } from "@/lib/api";
+import { setRole, clearAuth as clearAuthStorage } from "@/lib/auth";
+import { MOCK_USERS } from "@/lib/mock-users";
 
 type AuthContextType = {
   user: User | null;
@@ -24,7 +26,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -56,9 +58,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true";
+    
+    if (useMockAuth) {
+      // Use mock authentication
+      const mockUser = MOCK_USERS[email];
+      if (mockUser && mockUser.password === password) {
+        // Store a mock token and role
+        setToken("mock-token-" + Date.now());
+        setRole(mockUser.user.role as any);
+        setUser(mockUser.user);
+        return null;
+      }
+      return "Invalid email or password";
+    }
+    
+    // Use API authentication
     const res = await apiLogin(email, password);
     if (res.success && res.data) {
       setToken(res.data.token);
+      setRole(res.data.user.role as any);
       setUser(res.data.user);
       return null;
     }
@@ -83,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await apiLogout();
-    clearToken();
+    clearAuthStorage();
     setUser(null);
   }, []);
 

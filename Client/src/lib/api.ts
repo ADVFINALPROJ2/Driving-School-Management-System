@@ -43,8 +43,9 @@ type ApiResponse<T = unknown> = {
 
 import type { EnrollmentState } from "@/lib/enrollment-types";
 import { UPLOAD_SLOTS } from "@/lib/validations";
+import type { UserRole } from "@/lib/auth";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const DEFAULT_BATCH_ID = Number(process.env.NEXT_PUBLIC_DEFAULT_BATCH_ID || "1");
 
 // Generic POST /api/v1/students.
@@ -198,7 +199,7 @@ export type User = {
   id: number;
   email: string;
   full_name: string;
-  role: string;
+  role: UserRole;
   phone_number: string | null;
   is_qualified_instructor: boolean;
   created_at: string;
@@ -327,3 +328,410 @@ export type Batch = {
   name: string;
   status: string;
 };
+
+// ─── Invoice API ─────────────────────────────────────────────────────────────
+
+export type InvoiceStatus = "paid" | "unpaid" | "overdue";
+
+export type Invoice = {
+  id: number;
+  invoice_number: string;
+  student_name: string;
+  student_id: number;
+  type: string;
+  amount: number;
+  status: InvoiceStatus;
+  due_date: string;
+  payment_date?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  description?: string;
+  created_at: string;
+};
+
+type RawInvoice = {
+  id: number;
+  invoice_number: string;
+  student_id: number;
+  student_name?: string;
+  invoice_type?: string;
+  type?: string;
+  amount: number;
+  status: string;
+  due_date: string;
+  paid_at?: string;
+  payment_date?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  description?: string;
+  created_at: string;
+};
+
+export function normalizeInvoice(raw: RawInvoice): Invoice {
+  const status =
+    raw.status === "pending"
+      ? "unpaid"
+      : raw.status === "paid" || raw.status === "overdue"
+        ? raw.status
+        : "unpaid";
+
+  return {
+    id: raw.id,
+    invoice_number: raw.invoice_number,
+    student_name: raw.student_name ?? "Unknown Student",
+    student_id: raw.student_id,
+    type: raw.invoice_type ?? raw.type ?? "unknown",
+    amount: Number(raw.amount),
+    status,
+    due_date: raw.due_date,
+    payment_date: raw.paid_at ?? raw.payment_date,
+    payment_method: raw.payment_method,
+    payment_reference: raw.payment_reference,
+    description: raw.description,
+    created_at: raw.created_at,
+  };
+}
+
+function parseInvoiceList(json: { data?: unknown }): Invoice[] {
+  const raw = json.data;
+  const list = Array.isArray(raw) ? raw : (raw as { invoices?: RawInvoice[] })?.invoices ?? [];
+  return (list as RawInvoice[]).map(normalizeInvoice);
+}
+
+export async function getInvoices(params?: {
+  status?: string;
+  invoice_type?: string;
+  student_id?: number;
+}): Promise<ApiResponse<Invoice[]>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.set("status", params.status);
+    if (params?.invoice_type) queryParams.set("invoice_type", params.invoice_type);
+    if (params?.student_id) queryParams.set("student_id", params.student_id.toString());
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/invoices?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch invoices" };
+    return { success: true, data: parseInvoiceList(json) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getInvoice(id: number): Promise<ApiResponse<Invoice>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/invoices/${id}`, {
+      headers: authHeaders(),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch invoice" };
+    const raw = json.data?.invoice ?? json.data ?? json;
+    return { success: true, data: normalizeInvoice(raw as RawInvoice) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function markInvoicePaid(id: number, paymentDetails?: {
+  amount?: number;
+  payment_method?: string;
+  payment_date?: string;
+  notes?: string;
+}): Promise<ApiResponse<Invoice>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/invoices/${id}/mark_paid`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(paymentDetails || {}),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to mark invoice as paid" };
+    const raw = json.data?.invoice ?? json.data ?? json;
+    return { success: true, data: normalizeInvoice(raw as RawInvoice) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// ─── Financial Reports API ───────────────────────────────────────────────────
+
+export type FinancialSummary = {
+  total_revenue: number;
+  invoice_count: number;
+  average_invoice: number;
+  student_count: number;
+  collections: {
+    total_issued: number;
+    total_collected: number;
+    collection_rate: number;
+    pending_amount: number;
+    overdue_amount: number;
+  };
+  outstanding: {
+    total_outstanding: number;
+    pending_count: number;
+    overdue_count: number;
+  };
+};
+
+export type RevenueTrend = { date: string; amount: number };
+
+export type MonthlyComparison = {
+  month: string;
+  total_issued: number;
+  total_collected: number;
+  collection_rate: number;
+};
+
+export type CollectionsReport = {
+  collection_summary: FinancialSummary["collections"];
+  outstanding_summary: FinancialSummary["outstanding"];
+};
+
+export type LMSProgress = {
+  status: string;
+  theory: { days_completed: number; days_required: number; percentage: number; complete: boolean };
+  practical: { days_completed: number; days_required: number; percentage: number; complete: boolean };
+  mock_test: { score: number; required: number; passed: boolean };
+  next_milestone: string;
+  exam_eligible: boolean;
+};
+
+export type AttendanceLog = {
+  id: number;
+  phase: string;
+  attendance_date: string;
+  present: boolean;
+  instructor_name?: string;
+  notes?: string | null;
+};
+
+export type ActivityItem = {
+  id: string;
+  type: "student_registered" | "invoice_paid" | "invoice_created";
+  title: string;
+  description: string;
+  timestamp: string;
+};
+
+function normalizeFinancialSummary(raw: Record<string, unknown>): FinancialSummary {
+  const revenue = (raw.revenue ?? {}) as Record<string, number>;
+  const collections = (raw.collections ?? {}) as FinancialSummary["collections"];
+  const outstanding = (raw.outstanding ?? {}) as FinancialSummary["outstanding"];
+
+  return {
+    total_revenue: revenue.total_revenue ?? 0,
+    invoice_count: revenue.invoice_count ?? 0,
+    average_invoice: revenue.average_invoice ?? 0,
+    student_count: revenue.student_count ?? 0,
+    collections: {
+      total_issued: collections.total_issued ?? 0,
+      total_collected: collections.total_collected ?? 0,
+      collection_rate: collections.collection_rate ?? 0,
+      pending_amount: collections.pending_amount ?? 0,
+      overdue_amount: collections.overdue_amount ?? 0,
+    },
+    outstanding: {
+      total_outstanding: outstanding.total_outstanding ?? 0,
+      pending_count: outstanding.pending_count ?? 0,
+      overdue_count: outstanding.overdue_count ?? 0,
+    },
+  };
+}
+
+export function buildActivityFeed(students: Student[], invoices: Invoice[]): ActivityItem[] {
+  const items: ActivityItem[] = [];
+
+  students.slice(0, 10).forEach((s) => {
+    items.push({
+      id: `student-${s.id}`,
+      type: "student_registered",
+      title: "New student registered",
+      description: `${s.first_name} ${s.last_name} (${s.student_id})`,
+      timestamp: s.created_at,
+    });
+  });
+
+  invoices.slice(0, 10).forEach((inv) => {
+    items.push({
+      id: `invoice-${inv.id}`,
+      type: inv.status === "paid" ? "invoice_paid" : "invoice_created",
+      title: inv.status === "paid" ? "Payment received" : "Invoice issued",
+      description: `${inv.invoice_number} — ${inv.student_name} — ETB ${inv.amount.toLocaleString()}`,
+      timestamp: inv.payment_date ?? inv.created_at,
+    });
+  });
+
+  return items
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 8);
+}
+
+export async function getFinancialSummary(startDate?: string, endDate?: string): Promise<ApiResponse<FinancialSummary>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("start_date", startDate);
+    if (endDate) queryParams.set("end_date", endDate);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/financial_reports/summary?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch financial summary" };
+    return { success: true, data: normalizeFinancialSummary(json.data ?? json) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getFinancialRevenue(startDate?: string, endDate?: string): Promise<ApiResponse<{ trends: RevenueTrend[] }>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("start_date", startDate);
+    if (endDate) queryParams.set("end_date", endDate);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/financial_reports/revenue?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch revenue data" };
+    const data = json.data ?? json;
+    const trends = (data.trends ?? data.revenue_summary?.trends ?? []) as RevenueTrend[];
+    return { success: true, data: { trends } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getFinancialCollections(startDate?: string, endDate?: string): Promise<ApiResponse<CollectionsReport>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("start_date", startDate);
+    if (endDate) queryParams.set("end_date", endDate);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/financial_reports/collections?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch collections data" };
+    const data = json.data ?? json;
+    return {
+      success: true,
+      data: {
+        collection_summary: {
+          total_issued: data.collection_summary?.total_issued ?? 0,
+          total_collected: data.collection_summary?.total_collected ?? 0,
+          collection_rate: data.collection_summary?.collection_rate ?? 0,
+          pending_amount: data.collection_summary?.pending_amount ?? 0,
+          overdue_amount: data.collection_summary?.overdue_amount ?? 0,
+        },
+        outstanding_summary: {
+          total_outstanding: data.outstanding_summary?.total_outstanding ?? 0,
+          pending_count: data.outstanding_summary?.pending_count ?? 0,
+          overdue_count: data.outstanding_summary?.overdue_count ?? 0,
+        },
+      },
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getMonthlyComparison(startDate?: string, endDate?: string): Promise<ApiResponse<MonthlyComparison[]>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("start_date", startDate);
+    if (endDate) queryParams.set("end_date", endDate);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/financial_reports/monthly_comparison?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch monthly comparison" };
+    const data = json.data ?? json;
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function exportFinancialReport(startDate?: string, endDate?: string): Promise<ApiResponse<Blob>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.set("start_date", startDate);
+    if (endDate) queryParams.set("end_date", endDate);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/financial_reports/export?${queryParams.toString()}`,
+      { headers: authHeaders() }
+    );
+    if (!response.ok) return { success: false, error: "Failed to export report" };
+    const blob = await response.blob();
+    return { success: true, data: blob };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function reconcilePayments(): Promise<ApiResponse<any>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/financial_reports/reconcile`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to reconcile payments" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// ─── Student Nested Endpoints ─────────────────────────────────────────────────
+
+export async function getStudentInvoices(studentId: number): Promise<ApiResponse<Invoice[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/invoices`, {
+      headers: authHeaders(),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch student invoices" };
+    return { success: true, data: parseInvoiceList(json) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getStudentAttendanceLogs(studentId: number): Promise<ApiResponse<AttendanceLog[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/attendance_logs`, {
+      headers: authHeaders(),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch attendance logs" };
+    const data = json.data ?? json;
+    return { success: true, data: Array.isArray(data) ? data : data?.attendance_logs ?? [] };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+export async function getStudentLMSProgress(studentId: number): Promise<ApiResponse<LMSProgress>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/lms_progress`, {
+      headers: authHeaders(),
+    });
+    const json = await response.json();
+    if (!response.ok) return { success: false, error: json.error?.message || json.error || "Failed to fetch LMS progress" };
+    return { success: true, data: json.data ?? json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
