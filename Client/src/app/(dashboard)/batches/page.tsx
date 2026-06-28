@@ -1,6 +1,6 @@
 "use client";
 
-import { firstError } from "@/lib/api";
+import { firstError, updateBatch, type Batch as ApiBatch } from "@/lib/api";
 
 import { useEffect, useState, startTransition } from "react";
 import { Plus, Layers, Search, Eye, AlertCircle, RefreshCw } from "lucide-react";
@@ -38,6 +38,8 @@ export default function BatchesPage() {
   const [batchName, setBatchName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selected, setSelected] = useState<Batch | null>(null);
+  const [editingStatus, setEditingStatus] = useState("");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBatches = async () => {
@@ -164,9 +166,9 @@ export default function BatchesPage() {
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</td>
                       <td className="p-3 text-right">
-                        <Button size="sm" variant="ghost" onClick={() => setSelected(b)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setSelected(b); setEditingStatus(b.status); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                       </td>
                     </tr>
                   ))}
@@ -185,8 +187,36 @@ export default function BatchesPage() {
               ) : (
                 <div className="space-y-3">
                   <div><span className="text-xs text-muted-foreground">ID</span><p className="text-sm font-mono">#{selected.id}</p></div>
-                  <div><span className="text-xs text-muted-foreground">Status</span>
-                    <p><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[selected.status] || "bg-gray-100"}`}>{selected.status}</span></p>
+                  <div><span className="text-xs text-muted-foreground">Name</span><p className="text-sm font-medium">{selected.name}</p></div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <div className="flex gap-2 items-center mt-1">
+                      <select
+                        value={editingStatus}
+                        onChange={(e) => setEditingStatus(e.target.value)}
+                        className="flex h-8 rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                      {editingStatus !== selected.status && (
+                        <Button size="sm" onClick={async () => {
+                          setSaving(true);
+                          const res = await updateBatch(selected.id, { status: editingStatus });
+                          if (res.success) {
+                            setBatches((prev) => prev.map((b) => b.id === selected.id ? { ...b, status: editingStatus } : b));
+                            setSelected({ ...selected, status: editingStatus });
+                          } else {
+                            setError(res.error || "Failed to update status");
+                          }
+                          setSaving(false);
+                        }} disabled={saving}>
+                          {saving ? "Saving..." : "Save"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div><span className="text-xs text-muted-foreground">Created</span><p className="text-sm">{new Date(selected.created_at).toLocaleString()}</p></div>
                 </div>

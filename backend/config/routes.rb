@@ -23,7 +23,7 @@ Rails.application.routes.draw do
       # User management (admin-managed via UserPolicy)
       resources :users, only: [ :index, :show, :create, :update, :destroy ]
 
-      resources :batches, only: [ :index, :show, :create ]
+      resources :batches, only: [ :index, :show, :create, :update ]
       resources :license_categories, only: [ :index ]
       resources :course_categories, only: [ :index ]
       resources :students, only: [ :index, :show, :create, :update ] do

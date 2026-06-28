@@ -811,6 +811,22 @@ export async function createBatch(data: Record<string, unknown>): Promise<ApiRes
   }
 }
 
+// PATCH /api/v1/batches/:id
+export async function updateBatch(id: number, data: Record<string, unknown>): Promise<ApiResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/batches/${id}`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ batch: data }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.error || "Failed to update batch", errors: json.errors };
+    return { success: true, data: json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
 // POST /api/v1/invoices/:id/mark_paid
 export async function markInvoicePaid(id: number): Promise<ApiResponse> {
   try {
