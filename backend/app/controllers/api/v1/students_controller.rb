@@ -69,6 +69,7 @@ module Api
           :eye_acuity_test,
           :meklit_approval_date,
           :education_level,
+          :n_number,
           :first_name,
           :middle_name,
           :last_name,

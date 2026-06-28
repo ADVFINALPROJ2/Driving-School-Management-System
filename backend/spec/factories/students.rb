@@ -8,6 +8,7 @@ FactoryBot.define do
     eye_acuity_test { [ "Normal", "Mild_Impairment", "Moderate_Impairment", "Severe_Impairment" ].sample }
     meklit_approval_date { nil }
     education_level { %w[Grade_4_Certificate Grade_10_Certificate].sample }
+    n_number { "N#{Faker::Number.unique.number(digits: 8)}" }
     first_name { Faker::Name.first_name }
     middle_name { Faker::Name.middle_name }
     last_name { Faker::Name.last_name }

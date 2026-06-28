@@ -1,13 +1,6 @@
-<<<<<<< HEAD
-// Authentication utilities for token management and user role handling.
-// Provides localStorage-based token storage and role type definitions.
-
-const TOKEN_KEY = "driving_school_token";
-const ROLE_KEY = "user_role";
-
-export type UserRole = "admin" | "receptionist" | "instructor" | "staff" | "student" | "manager";
-=======
 export type UserRole = "admin" | "receptionist" | "instructor";
+export type UserRole = "admin" | "clerk" | "instructor" | "student";
+export type Role = UserRole;
 
 export interface User {
   id: number;
@@ -18,7 +11,7 @@ export interface User {
 
 const TOKEN_KEY = "driving_school_token";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
+
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -33,25 +26,15 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-<<<<<<< HEAD
-export function getRole(): UserRole | null {
-  if (typeof window === "undefined") return null;
-  const role = localStorage.getItem(ROLE_KEY);
-  return role as UserRole | null;
+export function isAdmin(role?: UserRole | string): boolean {
+  if (role === undefined) {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem("role") || "";
+    return stored === "admin";
+  }
+  return role === "admin";
 }
 
-export function setRole(role: UserRole): void {
-  localStorage.setItem(ROLE_KEY, role);
-}
-
-export function removeRole(): void {
-  localStorage.removeItem(ROLE_KEY);
-}
-
-export function clearAuth(): void {
-  removeToken();
-  removeRole();
-=======
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const token = getToken();
@@ -71,5 +54,4 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch {
     return null;
   }
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 }

@@ -13,8 +13,9 @@ const protectedPaths = [
   "/students",
   "/dashboard",
   "/admin",
-  "/receptionist",
+  "/clerk",
   "/instructor",
+  "/student",
 ];
 
 function matchesProtectedPath(pathname: string): boolean {
@@ -29,8 +30,9 @@ function matchesProtectedPath(pathname: string): boolean {
 const roleAccess: Record<string, string[]> = {
 >>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
   "/admin": ["admin"],
-  "/receptionist": ["admin", "receptionist"],
+  "/clerk": ["admin", "clerk"],
   "/instructor": ["admin", "instructor"],
+  "/student": ["admin", "student"],
 };
 
 <<<<<<< HEAD
@@ -103,8 +105,9 @@ export const config = {
     "/students/:path*",
     "/dashboard/:path*",
     "/admin/:path*",
-    "/receptionist/:path*",
+    "/clerk/:path*",
     "/instructor/:path*",
+    "/student/:path*",
   ],
 >>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 };

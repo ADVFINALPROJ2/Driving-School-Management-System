@@ -1,21 +1,7 @@
-<<<<<<< HEAD
-// Application shell layout: sidebar navigation for the dashboard area.
-// Renders the DSAS brand mark and role-based navigation items.
-// Active-route detection is done via usePathname(): root "/" is an exact match,
-// while other routes use startsWith so nested routes stay highlighted.
-// Uses sidebar-specific CSS variables (--sidebar-*) defined in globals.css.
-
-=======
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-<<<<<<< HEAD
-import { LayoutDashboard, Users, FileText, BarChart3, DollarSign } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth-context";
-=======
 import {
   LayoutDashboard,
   Users,
@@ -23,37 +9,25 @@ import {
   BarChart3,
   UserCog,
   DollarSign,
+  Layers,
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { type Role } from "@/context/auth-context";
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
+
+import { type Role } from "@/lib/auth";
 
 type NavItem = {
   href: string;
   label: string;
-<<<<<<< HEAD
-  icon: any;
-  roles: string[];
-};
-
-const allNavItems: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "receptionist", "instructor", "staff"] },
-  { href: "/students", label: "Students", icon: Users, roles: ["admin", "receptionist", "instructor", "staff"] },
-  { href: "/invoices", label: "Invoices", icon: FileText, roles: ["admin", "receptionist"] },
-  { href: "/financial-reports", label: "Financial Reports", icon: BarChart3, roles: ["admin"] },
-  { href: "/payroll", label: "Payroll", icon: DollarSign, roles: ["admin"] },
-];
-=======
   icon: React.ComponentType<{ className?: string }>;
 };
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 
 const navConfig: Record<Role, NavItem[]> = {
   admin: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+    { href: "/batches", label: "Batches", icon: Layers },
     { href: "/invoices", label: "Invoices", icon: FileText },
     { href: "/financial-reports", label: "Financial Reports", icon: BarChart3 },
     { href: "/users", label: "Users", icon: UserCog },
@@ -62,11 +36,15 @@ const navConfig: Record<Role, NavItem[]> = {
   clerk: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+    { href: "/batches", label: "Batches", icon: Layers },
     { href: "/invoices", label: "Invoices", icon: FileText },
   ],
   instructor: [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/instructor", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+  ],
+  student: [
+    { href: "/student", label: "My Progress", icon: LayoutDashboard },
   ],
 };
 
@@ -79,14 +57,10 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { user } = useAuth();
-<<<<<<< HEAD
-  const userRole = user?.role ? (user.role as string) : "staff";
-
-  const navItems = allNavItems.filter((item) => item.roles.includes(userRole));
-=======
   const role = user?.role ?? "admin";
+  const role = (user?.role ?? "admin") as Role;
   const navItems = navConfig[role] ?? navConfig.admin;
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
+
 
   return (
     <>

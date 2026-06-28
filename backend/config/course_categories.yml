@@ -6,12 +6,13 @@
 categories:
   - id: "auto"
     title: "Auto (Automobile)"
-    subtitle: "Category B - Private Manual"
+    subtitle: "Category B - Private Manual - Up to 8 Seats"
     price: 26010
     duration_days: 45
     registration_fee: 1500
+    education_requirement: "Grade_4_Certificate"
     requirements:
-      - text: "Minimum 4th Grade"
+      - text: "Minimum 4th Grade Certificate"
         icon: "graduation"
       - text: "Medical Certificate Required"
         icon: "medical"
@@ -20,12 +21,13 @@ categories:
 
   - id: "motor"
     title: "Motorcycle"
-    subtitle: "Category A"
-    price: 15500
+    subtitle: "Category A - Standard Motorcycle"
+    price: 13310
     duration_days: 30
     registration_fee: 1500
+    education_requirement: "Grade_4_Certificate"
     requirements:
-      - text: "Minimum 4th Grade"
+      - text: "Minimum 4th Grade Certificate"
         icon: "graduation"
       - text: "Medical Certificate Required"
         icon: "medical"
@@ -33,29 +35,31 @@ categories:
         icon: "clock"
 
   - id: "public1"
-    title: "Public-1 (Minibus)"
-    subtitle: "Category C1"
-    price: 32450
+    title: "Public-1 (Hizib 1)"
+    subtitle: "Category C1 - Up to 20 Seats"
+    price: 31310
     duration_days: 60
     registration_fee: 1500
+    education_requirement: "Grade_10_Certificate"
     requirements:
-      - text: "Valid Auto License Req."
+      - text: "Valid Auto License Required"
         icon: "license"
-      - text: "Minimum 8th Grade"
+      - text: "Minimum 10th Grade Certificate"
         icon: "graduation"
       - text: "60 Days Duration"
         icon: "clock"
 
   - id: "drycargo1"
-    title: "Dry Cargo-1 (Truck)"
-    subtitle: "Category C"
-    price: 38000
+    title: "Truck-1 (Derek 1)"
+    subtitle: "Category C - Freight Transport"
+    price: 29710
     duration_days: 60
     registration_fee: 1500
+    education_requirement: "Grade_10_Certificate"
     requirements:
-      - text: "Valid Auto License Req."
+      - text: "Valid Auto License Required"
         icon: "license"
-      - text: "Minimum 8th Grade"
+      - text: "Minimum 10th Grade Certificate"
         icon: "graduation"
       - text: "60 Days Duration"
         icon: "clock"

@@ -43,6 +43,7 @@ module Meklit
         {
           student_id: student.student_id,
           document_id: student.document_id,
+          n_number: student.n_number,
           personal_info: personal_info(student),
           address: address_info(student),
           training_progress: training_info(student),

@@ -3,6 +3,12 @@
 
 # Production schedule - runs in production environment
 production:
+  # ERTA Countdown Monitor - Daily at 1:00 AM
+  erta_countdown_monitor:
+    class: ERTACountdownMonitorJob
+    schedule: "0 1 * * *"
+    queue: default
+
   # Attendance Breach Scanner - Daily at 2:00 AM
   attendance_breach_scan:
     class: AttendanceBreachScanJob
@@ -28,8 +34,21 @@ production:
     schedule: "0 4 * * *"
     queue: default
 
+  # Meklit Batch Response Check - Every 6 hours
+  # Polls ERTA API for responses to submitted batches
+  meklit_batch_check:
+    class: MeklitBatchResponseCheckJob
+    schedule: "0 */6 * * *"
+    queue: default
+
 # Development schedule - for testing recurring jobs locally
 development:
+  # ERTA Countdown Monitor - Every hour for testing
+  erta_countdown_monitor:
+    class: ERTACountdownMonitorJob
+    schedule: "0 * * * *"
+    queue: default
+
   # Attendance Breach Scanner - Every hour for testing
   attendance_breach_scan:
     class: AttendanceBreachScanJob
@@ -51,6 +70,12 @@ development:
   # JWT Denylist Cleanup - Every 6 hours for testing
   jwt_cleanup:
     class: JwtCleanupJob
+    schedule: "0 */6 * * *"
+    queue: default
+
+  # Meklit Batch Response Check - Every 6 hours for testing
+  meklit_batch_check:
+    class: MeklitBatchResponseCheckJob
     schedule: "0 */6 * * *"
     queue: default
 

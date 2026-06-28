@@ -13,19 +13,24 @@ import { useRouter } from "next/navigation";
 import {
   login as apiLogin,
   logout as apiLogout,
+  register as apiRegister,
   getMe,
+  setToken,
   clearToken,
   getToken,
   refreshToken as apiRefresh,
   getJwtExpiresIn,
   type User,
 } from "@/lib/api";
-<<<<<<< HEAD
-import { setRole, clearAuth as clearAuthStorage } from "@/lib/auth";
-import { MOCK_USERS } from "@/lib/mock-users";
-=======
 import { loadLicenseCategories } from "@/lib/enrollment-types";
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
+
+type RegisterParams = {
+  email: string;
+  password: string;
+  password_confirmation: string;
+  full_name: string;
+  phone_number?: string;
+};
 
 type AuthContextValue = {
   user: User | null;
@@ -34,13 +39,10 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  register: (params: RegisterParams) => Promise<string | null>;
 };
 
-<<<<<<< HEAD
-export const AuthContext = createContext<AuthContextType | null>(null);
-=======
 const AuthContext = createContext<AuthContextValue | null>(null);
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,34 +53,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !isLoading && user !== null && token !== null;
 
   const login = useCallback(async (email: string, password: string): Promise<string | null> => {
-<<<<<<< HEAD
-    const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true";
-    
-    if (useMockAuth) {
-      // Use mock authentication
-      const mockUser = MOCK_USERS[email];
-      if (mockUser && mockUser.password === password) {
-        // Store a mock token and role
-        setToken("mock-token-" + Date.now());
-        setRole(mockUser.user.role as any);
-        setUser(mockUser.user);
-        return null;
-      }
-      return "Invalid email or password";
-    }
-    
-    // Use API authentication
-    const res = await apiLogin(email, password);
-    if (res.success && res.data) {
-      setToken(res.data.token);
-      setRole(res.data.user.role as any);
-      setUser(res.data.user);
-=======
     const result = await apiLogin(email, password);
     if (result.success && result.data) {
       setUser(result.data.user);
       setTokenState(result.data.token);
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
+      setToken(result.data.token);
+      document.cookie = `token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${result.data.user.role}; path=/; max-age=86400; SameSite=Lax`;
+
       return null;
     }
     return result.error || "Login failed";
@@ -86,14 +68,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await apiLogout();
-<<<<<<< HEAD
-    clearAuthStorage();
-=======
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
     setUser(null);
     setTokenState(null);
+    clearToken();
+    document.cookie = "token=; path=/; max-age=0";
+    document.cookie = "role=; path=/; max-age=0";
     router.push("/login");
   }, [router]);
+
+  const register = useCallback(async (params: RegisterParams): Promise<string | null> => {
+    const result = await apiRegister(params);
+    if (result.success && result.data) {
+      setUser(result.data.user);
+      setTokenState(result.data.token);
+      setToken(result.data.token);
+      document.cookie = `token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${result.data.user.role}; path=/; max-age=86400; SameSite=Lax`;
+      return null;
+    }
+    return result.error || "Registration failed";
+  }, []);
 
   useEffect(() => {
     const storedToken = getToken();
@@ -132,11 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiRefresh().then((r) => {
         if (r.success && r.data) {
           setTokenState(r.data.token);
+          setToken(r.data.token);
           setUser(r.data.user);
+          document.cookie = `token=${r.data.token}; path=/; max-age=86400; SameSite=Lax`;
         } else {
           clearToken();
           setTokenState(null);
           setUser(null);
+          document.cookie = "token=; path=/; max-age=0";
+          document.cookie = "role=; path=/; max-age=0";
         }
       });
     }
@@ -145,11 +143,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiRefresh().then((r) => {
         if (r.success && r.data) {
           setTokenState(r.data.token);
+          setToken(r.data.token);
           setUser(r.data.user);
+          document.cookie = `token=${r.data.token}; path=/; max-age=86400; SameSite=Lax`;
         } else {
           clearToken();
           setTokenState(null);
           setUser(null);
+          document.cookie = "token=; path=/; max-age=0";
+          document.cookie = "role=; path=/; max-age=0";
         }
       });
     }, refreshIn);
@@ -164,8 +166,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, isLoading, isAuthenticated, login, logout }),
-    [user, token, isLoading, isAuthenticated, login, logout],
+    () => ({ user, token, isLoading, isAuthenticated, login, logout, register }),
+    [user, token, isLoading, isAuthenticated, login, logout, register],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
