@@ -36,11 +36,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm rounded-xl border bg-card text-card-foreground p-8 shadow-sm">
         <div className="mb-6 text-center">
-          <h1 className="font-serif text-2xl font-bold text-[#0f172a]">DSAS</h1>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your account</p>
+          <h1 className="font-serif text-2xl font-bold text-foreground">DSAS</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -51,13 +51,13 @@ export default function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
           </div>
-          <Button type="submit" className="w-full bg-[#2563eb] hover:bg-[#1d4ed8]" disabled={submitting}>
+          <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-[#2563eb] hover:underline">Register</Link>
+          <Link href="/register" className="font-medium text-primary hover:underline">Register</Link>
         </p>
       </div>
     </div>

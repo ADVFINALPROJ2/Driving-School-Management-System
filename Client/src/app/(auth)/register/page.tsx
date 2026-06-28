@@ -50,11 +50,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm rounded-xl border bg-card text-card-foreground p-8 shadow-sm">
         <div className="mb-6 text-center">
-          <h1 className="font-serif text-2xl font-bold text-[#0f172a]">Create Account</h1>
-          <p className="mt-1 text-sm text-slate-500">Register as a student</p>
+          <h1 className="font-serif text-2xl font-bold text-foreground">Create Account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Register as a student</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -77,13 +77,13 @@ export default function RegisterPage() {
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="••••••••" minLength={6} />
           </div>
-          <Button type="submit" className="w-full bg-[#2563eb] hover:bg-[#1d4ed8]" disabled={submitting}>
+          <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Creating account…" : "Create account"}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-[#2563eb] hover:underline">Sign in</Link>
+          <Link href="/login" className="font-medium text-primary hover:underline">Sign in</Link>
         </p>
       </div>
     </div>
