@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-<<<<<<< HEAD
-// Protected routes that require authentication
-const protectedRoutes = ["/dashboard", "/admin", "/receptionist", "/instructor"];
-
-// Role-based route access
-const roleRoutes = {
-=======
 const protectedPaths = [
   "/",
   "/students",
@@ -28,27 +21,12 @@ function matchesProtectedPath(pathname: string): boolean {
 }
 
 const roleAccess: Record<string, string[]> = {
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
   "/admin": ["admin"],
   "/clerk": ["admin", "clerk"],
   "/instructor": ["admin", "instructor"],
   "/student": ["admin", "student"],
 };
 
-<<<<<<< HEAD
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const token = request.cookies.get("driving_school_token")?.value;
-  const role = request.cookies.get("user_role")?.value;
-
-  // Check if route is protected
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  // Redirect to login if no token and trying to access protected route
-  if (isProtectedRoute && !token) {
-=======
 function getRequiredSegments(pathname: string): string[] {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) return [];
@@ -67,20 +45,10 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get("token")?.value;
   if (!token) {
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-<<<<<<< HEAD
-  // Check role-based access
-  for (const [route, allowedRoles] of Object.entries(roleRoutes)) {
-    if (pathname.startsWith(route) && token) {
-      if (!role || !allowedRoles.includes(role)) {
-        const unauthorizedUrl = new URL("/unauthorized", request.url);
-        return NextResponse.redirect(unauthorizedUrl);
-      }
-=======
   const role = request.cookies.get("role")?.value as string | undefined;
   const pathSegments = getRequiredSegments(pathname);
 
@@ -89,7 +57,6 @@ export function middleware(request: NextRequest) {
     if (allowed && role && !allowed.includes(role)) {
       const unauthorizedUrl = new URL("/unauthorized", request.url);
       return NextResponse.redirect(unauthorizedUrl);
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
     }
   }
 
@@ -97,9 +64,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-<<<<<<< HEAD
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/receptionist/:path*", "/instructor/:path*"],
-=======
   matcher: [
     "/",
     "/students/:path*",
@@ -109,5 +73,4 @@ export const config = {
     "/instructor/:path*",
     "/student/:path*",
   ],
->>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 };
