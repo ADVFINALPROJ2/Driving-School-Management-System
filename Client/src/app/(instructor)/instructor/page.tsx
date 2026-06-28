@@ -1,26 +1,95 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { BookOpen, Users, ClipboardCheck, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
-import { getStudents, type Student } from "@/lib/api";
+import { BookOpen, Users, ClipboardCheck, DollarSign, CheckCircle, AlertCircle, CalendarCheck, ClipboardList, RefreshCw } from "lucide-react";
+import { getStudents, createAttendanceLog, createMockTest, getPayrollEntries, type Student, type PayrollEntry } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+
+const statusStyles: Record<string, string> = {
+  draft: "bg-gray-100 text-gray-800",
+  paid: "bg-emerald-100 text-emerald-800",
+};
 
 export default function InstructorPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [attendanceStudent, setAttendanceStudent] = useState("");
+  const [attendancePhase, setAttendancePhase] = useState("theory");
+  const [attendancePresent, setAttendancePresent] = useState(true);
+  const [mockStudent, setMockStudent] = useState("");
+  const [mockScore, setMockScore] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getStudents().then((res) => {
-      if (res.success && res.data) setStudents(res.data);
+  const fetchData = () => {
+    setLoading(true);
+    setError(null);
+    Promise.all([getStudents(), getPayrollEntries()]).then(([sRes, pRes]) => {
+      if (!sRes.success) setError(sRes.errors?.[0] || "Failed to load students");
+      if (!pRes.success) setError(pRes.errors?.[0] || "Failed to load payroll");
+      if (sRes.success && sRes.data) {
+        const data = typeof sRes.data === "object" && "data" in sRes.data ? (sRes.data as any).data : sRes.data;
+        setStudents(Array.isArray(data) ? data : []);
+      }
+      if (pRes.success && pRes.data) {
+        const data = typeof pRes.data === "object" && "data" in pRes.data ? (pRes.data as any).data : pRes.data;
+        setPayrollEntries(Array.isArray(data) ? data : []);
+      }
+      setLoading(false);
+    }).catch(() => {
+      setError("Network error. Please check your connection.");
       setLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const myStudents = useMemo(
     () => students.filter((s) => ["theory_in_progress", "practical_in_progress", "exam_eligible"].includes(s.status)),
     [students],
   );
+
+  const handleAttendanceSubmit = async () => {
+    if (!attendanceStudent) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await createAttendanceLog(Number(attendanceStudent), {
+        phase: attendancePhase,
+        attendance_date: new Date().toISOString().split("T")[0],
+        present: attendancePresent,
+      });
+      if (!res.success) setError(res.errors?.[0] || "Failed to log attendance");
+    } catch {
+      setError("Network error. Please check your connection.");
+    }
+    setSubmitting(false);
+  };
+
+  const handleMockSubmit = async () => {
+    if (!mockStudent || !mockScore) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await createMockTest(Number(mockStudent), {
+        score: Number(mockScore),
+        test_date: new Date().toISOString().split("T")[0],
+      });
+      if (res.success) {
+        setMockScore("");
+      } else {
+        setError(res.errors?.[0] || "Failed to record mock test");
+      }
+    } catch {
+      setError("Network error. Please check your connection.");
+    }
+    setSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -39,8 +108,18 @@ export default function InstructorPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">Instructor Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Student progress tracking, attendance, and lesson management.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Student progress tracking, attendance, mock tests, and payroll.</p>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+          <span className="flex-1">{error}</span>
+          <Button variant="outline" size="sm" onClick={() => { setError(null); fetchData(); }}>
+            <RefreshCw className="mr-1 h-4 w-4" /> Retry
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
@@ -74,6 +153,56 @@ export default function InstructorPage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500">
               <ClipboardCheck className="h-5 w-5 text-white" />
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Log Attendance</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Select value={attendanceStudent} onValueChange={setAttendanceStudent}>
+              <SelectTrigger><SelectValue placeholder="Select student..." /></SelectTrigger>
+              <SelectContent>
+                {myStudents.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.middle_name} ({s.student_id})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={attendancePhase} onValueChange={setAttendancePhase}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="theory">Theory</SelectItem>
+                <SelectItem value="practical">Practical</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button variant={attendancePresent ? "default" : "outline"} size="sm" onClick={() => setAttendancePresent(true)}>Present</Button>
+              <Button variant={!attendancePresent ? "default" : "outline"} size="sm" onClick={() => setAttendancePresent(false)}>Absent</Button>
+            </div>
+            <Button onClick={handleAttendanceSubmit} disabled={!attendanceStudent || submitting}>
+              <CalendarCheck className="mr-2 h-4 w-4" />
+              Log Attendance
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Record Mock Test</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Select value={mockStudent} onValueChange={setMockStudent}>
+              <SelectTrigger><SelectValue placeholder="Select student..." /></SelectTrigger>
+              <SelectContent>
+                {myStudents.filter((s) => s.status === "theory_in_progress").map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.middle_name} ({s.student_id})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input type="number" min="0" max="100" placeholder="Score (0-100, pass > 37)" value={mockScore} onChange={(e) => setMockScore(e.target.value)} />
+            <Button onClick={handleMockSubmit} disabled={!mockStudent || !mockScore || submitting}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Record Score
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -122,9 +251,7 @@ export default function InstructorPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Exam Ready Students</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Exam Ready Students</CardTitle></CardHeader>
           <CardContent>
             {myStudents.filter((s) => s.status === "exam_eligible").length === 0 ? (
               <p className="text-sm text-muted-foreground">No students ready for exam.</p>
@@ -143,9 +270,7 @@ export default function InstructorPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Students Under Penalty</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Students Under Penalty</CardTitle></CardHeader>
           <CardContent>
             {students.filter((s) => s.under_penalty).length === 0 ? (
               <p className="text-sm text-muted-foreground">No students under penalty.</p>
@@ -163,6 +288,46 @@ export default function InstructorPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>My Payroll</CardTitle></CardHeader>
+        <CardContent>
+          {payrollEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No payroll entries found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-3">Period</th>
+                    <th className="px-4 py-3">Base Pay</th>
+                    <th className="px-4 py-3">Student Load</th>
+                    <th className="px-4 py-3">Training Days</th>
+                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payrollEntries.slice(0, 12).map((e) => (
+                    <tr key={e.id} className="border-b last:border-0">
+                      <td className="px-4 py-3">{e.period_start} &mdash; {e.period_end}</td>
+                      <td className="px-4 py-3">{e.base_pay.toLocaleString()} ETB</td>
+                      <td className="px-4 py-3">{e.active_student_loads}</td>
+                      <td className="px-4 py-3">{e.active_training_days}</td>
+                      <td className="px-4 py-3 font-semibold">{e.total_pay.toLocaleString()} ETB</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[e.status] || "bg-blue-100 text-blue-800"}`}>
+                          {e.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

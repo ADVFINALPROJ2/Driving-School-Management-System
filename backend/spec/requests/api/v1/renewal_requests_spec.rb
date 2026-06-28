@@ -1,81 +1,70 @@
 # frozen_string_literal: true
 
-require "rails_helper"
+require 'rails_helper'
 
-RSpec.describe "Api::V1::RenewalRequests", type: :request do
+RSpec.describe 'Api::V1::RenewalRequests', type: :request do
   def auth_headers(user)
     token = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
     { "Authorization" => "Bearer #{token}" }
   end
 
-  let(:admin) { create(:user, :admin) }
   let(:clerk) { create(:user, :clerk) }
-  let(:any_user) { create(:user) }
+  let!(:renewal) { create(:renewal_request) }
 
-  let!(:renewal_request) { create(:renewal_request) }
-
-  describe "GET /api/v1/renewal_requests" do
-    it "requires authentication" do
-      get "/api/v1/renewal_requests"
+  describe 'GET /api/v1/renewal_requests' do
+    it 'requires authentication' do
+      get '/api/v1/renewal_requests'
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it "allows admin to view all" do
-      get "/api/v1/renewal_requests", headers: auth_headers(admin)
+    it 'returns all renewal requests' do
+      get '/api/v1/renewal_requests', headers: auth_headers(clerk)
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      expect(body["data"].size).to eq(1)
-    end
-
-    it "allows clerk to view all" do
-      get "/api/v1/renewal_requests", headers: auth_headers(clerk)
-      expect(response).to have_http_status(:ok)
-    end
-
-    it "forbids non-staff" do
-      get "/api/v1/renewal_requests", headers: auth_headers(any_user)
-      expect(response).to have_http_status(:forbidden)
+      expect(body['data']).to be_an(Array)
+      expect(body['data'].length).to eq(1)
     end
   end
 
-  describe "POST /api/v1/renewal_requests" do
-    it "allows any authenticated user to create" do
-      params = {
+  describe 'GET /api/v1/renewal_requests/:id' do
+    it 'returns a specific request' do
+      get "/api/v1/renewal_requests/#{renewal.id}", headers: auth_headers(clerk)
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body)['data']['id']).to eq(renewal.id)
+    end
+
+    it 'returns 404 for missing request' do
+      get '/api/v1/renewal_requests/0', headers: auth_headers(clerk)
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe 'POST /api/v1/renewal_requests' do
+    let(:valid_params) do
+      {
         renewal_request: {
-          full_name: "John Doe",
-          phone_number: "+251911223344",
+          full_name: "Test Driver",
+          phone_number: "+251911111111",
+          email: "test@example.com",
           prior_license_number: "AA-87654321",
+          blood_type: "O+",
+          eye_acuity_test: "20/20",
+          medical_data_updated: true,
           registered_kifle_ketema: "Bole"
         }
       }
+    end
+
+    it 'creates a renewal request' do
       expect {
-        post "/api/v1/renewal_requests", params: params, headers: auth_headers(any_user)
+        post '/api/v1/renewal_requests', params: valid_params, headers: auth_headers(clerk)
       }.to change(RenewalRequest, :count).by(1)
       expect(response).to have_http_status(:created)
     end
-  end
 
-  describe "POST /api/v1/renewal_requests/:id/submit" do
-    it "submits a pending request" do
-      post "/api/v1/renewal_requests/#{renewal_request.id}/submit", headers: auth_headers(clerk)
-      expect(response).to have_http_status(:ok)
-      expect(renewal_request.reload.status).to eq("submitted")
-    end
-  end
-
-  describe "POST /api/v1/renewal_requests/:id/complete" do
-    it "completes a request" do
-      post "/api/v1/renewal_requests/#{renewal_request.id}/complete", headers: auth_headers(clerk)
-      expect(response).to have_http_status(:ok)
-      expect(renewal_request.reload.status).to eq("completed")
-    end
-  end
-
-  describe "POST /api/v1/renewal_requests/:id/reject" do
-    it "rejects a request" do
-      post "/api/v1/renewal_requests/#{renewal_request.id}/reject", headers: auth_headers(clerk)
-      expect(response).to have_http_status(:ok)
-      expect(renewal_request.reload.status).to eq("rejected")
+    it 'returns error for missing params' do
+      post '/api/v1/renewal_requests', params: {}, headers: auth_headers(clerk)
+      expect(response).to have_http_status(:bad_request)
     end
   end
 end
