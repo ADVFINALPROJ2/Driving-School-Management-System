@@ -41,14 +41,14 @@ const quickActions = [
   {
     label: "Exam Bookings",
     description: "Schedule and manage exam appointments",
-    href: "#",
+    href: "/exam-bookings",
     icon: CalendarCheck,
     color: "bg-amber-500",
   },
   {
     label: "Reports",
     description: "View aggregate reports and analytics",
-    href: "#",
+    href: "/reports",
     icon: FileText,
     color: "bg-emerald-500",
   },

@@ -36,8 +36,11 @@ const navConfig: Record<Role, NavItem[]> = {
     { href: "/invoices", label: "Invoices", icon: FileText },
   ],
   instructor: [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/instructor", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+  ],
+  student: [
+    { href: "/student", label: "My Progress", icon: LayoutDashboard },
   ],
 };
 

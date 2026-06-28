@@ -47,9 +47,32 @@ Rails.application.routes.draw do
         resource :lms_progress, only: [ :show ]
       end
 
+      # Top-level exam bookings (admin/clerk overview)
+      resources :exam_bookings, only: [ :index ]
+
       # Finance Module - Invoice management
       resources :invoices, only: [ :index, :show ] do
         post :mark_paid, on: :member
+      end
+
+      # Finance Module - Payroll Entries (instructor salary view)
+      resources :payroll_entries, only: [ :index, :show ]
+
+      # MASADEG / License Upgrade Module
+      resources :license_upgrades, only: [ :index, :show, :create ] do
+        member do
+          post :approve
+          post :reject
+        end
+      end
+
+      # Renewal Requests Module (external license renewal bypass)
+      resources :renewal_requests, only: [ :index, :show, :create ] do
+        member do
+          post :submit
+          post :complete
+          post :reject
+        end
       end
 
       # Finance Module - Financial Reports

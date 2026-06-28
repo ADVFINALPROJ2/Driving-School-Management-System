@@ -3,15 +3,23 @@
 module Api
   module V1
     class ExamBookingsController < BaseController
-      before_action :set_student
+      before_action :set_student, unless: :top_level_index?
       before_action :set_exam_booking, only: %i[show update cancel record_result]
       before_action :validate_eligibility, only: %i[create]
 
-      # GET /api/v1/students/:student_id/exam_bookings
+      # GET /api/v1/exam_bookings (top-level) or /api/v1/students/:student_id/exam_bookings
       def index
         authorize ExamBooking
-        @exam_bookings = @student.exam_bookings.order(scheduled_date: :asc)
+        @exam_bookings = if top_level_index?
+                           ExamBooking.all.includes(:student).order(scheduled_date: :asc)
+                         else
+                           @student.exam_bookings.order(scheduled_date: :asc)
+                         end
         render_success(@exam_bookings)
+      end
+
+      def top_level_index?
+        params[:student_id].blank?
       end
 
       # GET /api/v1/students/:student_id/exam_bookings/:id
@@ -67,6 +75,13 @@ module Api
           if @exam_booking.failed?
             penalty_engine = Penalty::PenaltyEngine.new(@student, @exam_booking)
             raise ActiveRecord::Rollback unless penalty_engine.apply_failure_penalty
+
+            attempt_number = count_exam_failure_attempts
+            PenaltyInvoiceGeneratorJob.perform_later(
+              student_id: @student.id,
+              penalty_type: "exam_failure",
+              attempt_number: attempt_number
+            )
           end
 
           committed = true
@@ -108,6 +123,18 @@ module Api
         unless validator.call
           render_error("Student not eligible for exam", status: :forbidden, errors: validator.errors)
         end
+      end
+
+      def count_exam_failure_attempts
+        Invoice.where(
+          student: @student,
+          milestone_type: Invoice::MILESTONE_TYPES[:government_penalty],
+          status: %w[pending paid]
+        ).count + 1
+      end
+
+      def exam_booking_params
+        params.require(:exam_booking).permit(:exam_type, :scheduled_date, :venue, :notes)
       end
 
       def send_exam_booking_email
