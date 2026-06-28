@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+
 import { type Role } from "@/lib/auth";
 
 type NavItem = {
@@ -56,8 +57,10 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const role = user?.role ?? "admin";
   const role = (user?.role ?? "admin") as Role;
   const navItems = navConfig[role] ?? navConfig.admin;
+
 
   return (
     <>

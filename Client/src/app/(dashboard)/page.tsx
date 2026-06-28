@@ -1,10 +1,86 @@
+<<<<<<< HEAD
+// Dashboard home page — the root route of the authenticated area.
+// Displays summary KPI cards and quick links to main sections.
+
+"use client";
+
+import { useEffect, useState } from "react";
+=======
 "use client";
 
 import { useEffect, useState, useMemo, startTransition } from "react";
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 import Link from "next/link";
 import {
   Plus,
   Users,
+<<<<<<< HEAD
+  DollarSign,
+  FileText,
+  TrendingUp,
+  ArrowRight,
+  UserPlus,
+  CreditCard,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  buildActivityFeed,
+  getFinancialSummary,
+  getInvoices,
+  getStudents,
+  type ActivityItem,
+  type FinancialSummary,
+  type Student,
+} from "@/lib/api";
+import { MOCK_FINANCIAL_SUMMARY, MOCK_INVOICES } from "@/lib/fallback-data";
+
+const activityIcons = {
+  student_registered: UserPlus,
+  invoice_paid: CreditCard,
+  invoice_created: FileText,
+};
+
+export default function DashboardPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [summary, setSummary] = useState<FinancialSummary>(MOCK_FINANCIAL_SUMMARY);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [sRes, fRes, iRes] = await Promise.all([
+        getStudents(),
+        getFinancialSummary(),
+        getInvoices(),
+      ]);
+
+      const studentList = sRes.success && sRes.data ? sRes.data : [];
+      const invoiceList =
+        iRes.success && iRes.data && iRes.data.length > 0 ? iRes.data : MOCK_INVOICES;
+
+      if (sRes.success && sRes.data) setStudents(sRes.data);
+      if (fRes.success && fRes.data) setSummary(fRes.data);
+
+      setActivities(buildActivityFeed(studentList, invoiceList));
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  const totalStudents = students.length;
+  const graduatedStudents = students.filter((s) => s.status === "graduated").length;
+  const totalRevenue = summary.total_revenue;
+  const pendingInvoices = summary.outstanding.pending_count;
+  const collectionsRate = Math.round(summary.collections.collection_rate);
+
+  const quickLinks = [
+    { label: "Students", href: "/students", icon: Users, color: "bg-blue-500" },
+    { label: "Invoices", href: "/invoices", icon: FileText, color: "bg-violet-500" },
+    { label: "Financial Reports", href: "/financial-reports", icon: TrendingUp, color: "bg-emerald-500" },
+    { label: "Payroll", href: "/payroll", icon: DollarSign, color: "bg-amber-500" },
+  ];
+=======
   Layers,
   BookOpen,
   GraduationCap,
@@ -82,11 +158,15 @@ export default function DashboardPage() {
     theoryInProgress: students.filter((s) => s.status === "theory_in_progress").length,
     practicalInProgress: students.filter((s) => s.status === "practical_in_progress").length,
   }), [students, batches]);
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
+<<<<<<< HEAD
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+=======
         <div>
           <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">
             Dashboard
@@ -95,6 +175,7 @@ export default function DashboardPage() {
             Overview of the Driving School Administration System
           </p>
         </div>
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
         <Button asChild className="bg-primary hover:bg-primary/90" size="lg">
           <Link href="/students/new">
             <Plus className="h-4 w-4" />
@@ -103,6 +184,76 @@ export default function DashboardPage() {
         </Button>
       </div>
 
+<<<<<<< HEAD
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : totalStudents}</div>
+            <p className="text-xs text-muted-foreground">
+              {loading ? "Loading..." : `${graduatedStudents} graduated`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ETB {loading ? "..." : totalRevenue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : pendingInvoices}</div>
+            <p className="text-xs text-muted-foreground">Awaiting payment</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Collections Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : `${collectionsRate}%`}</div>
+            <p className="text-xs text-muted-foreground">Payment collection</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Links</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {quickLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <div className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-accent">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${link.color}`}
+                  >
+                    <link.icon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">{link.label}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+=======
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map(({ label, key, icon: Icon, color }) => {
@@ -211,10 +362,48 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <p className="font-medium text-foreground">{label}</p>
                   <p className="text-sm text-muted-foreground">{description}</p>
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
                 </div>
               </Link>
             ))}
           </div>
+<<<<<<< HEAD
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-slate-500">Loading activity...</p>
+          ) : activities.length === 0 ? (
+            <p className="text-slate-500">No recent activity.</p>
+          ) : (
+            <ul className="divide-y">
+              {activities.map((item) => {
+                const Icon = activityIcons[item.type];
+                return (
+                  <li key={item.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                      <Icon className="h-4 w-4 text-slate-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[#0f172a]">{item.title}</p>
+                      <p className="text-sm text-slate-500">{item.description}</p>
+                    </div>
+                    <time className="shrink-0 text-xs text-slate-400">
+                      {new Date(item.timestamp).toLocaleDateString()}
+                    </time>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+=======
         </div>
       </div>
     </div>
@@ -237,6 +426,7 @@ function StatusRow({
         <span className="text-sm text-foreground">{label}</span>
       </div>
       <span className="text-sm font-semibold text-foreground">{count}</span>
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
     </div>
   );
 }

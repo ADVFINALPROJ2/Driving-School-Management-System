@@ -1,3 +1,4 @@
+export type UserRole = "admin" | "receptionist" | "instructor";
 export type UserRole = "admin" | "clerk" | "instructor" | "student";
 export type Role = UserRole;
 
@@ -10,6 +11,7 @@ export interface User {
 
 const TOKEN_KEY = "driving_school_token";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

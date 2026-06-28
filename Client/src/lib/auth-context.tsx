@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(result.data.token);
       document.cookie = `token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
       document.cookie = `role=${result.data.user.role}; path=/; max-age=86400; SameSite=Lax`;
+
       return null;
     }
     return result.error || "Login failed";

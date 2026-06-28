@@ -50,8 +50,9 @@ export function firstError(errors: string[] | Record<string, string[]> | undefin
 
 import type { EnrollmentState, EnrollmentFormData } from "@/lib/enrollment-types";
 import { UPLOAD_SLOTS } from "@/lib/validations";
+import type { UserRole } from "@/lib/auth";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const DEFAULT_BATCH_ID = Number(process.env.NEXT_PUBLIC_DEFAULT_BATCH_ID || "1");
 
 /** Generic fetch wrapper that auto-attaches the JWT and normalises the response. */
@@ -921,3 +922,4 @@ export type CourseCategory = {
   registration_fee: number;
   requirements: { text: string; icon: string }[];
 };
+
