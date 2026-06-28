@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Root stylesheet for the Driving School client. */
 /* Uses Tailwind CSS v4 with the `tailwindcss-animate` plugin (for Radix */
 /* animation utilities) and a custom `dark` variant that applies when the */
@@ -17,6 +18,8 @@
 /* The `@layer base` block sets a global border colour via the `*` selector */
 /* and applies a smooth colour transition on the body for theme switching. */
 
+=======
+>>>>>>> 7a82bb8f0a0c5946df665068d884d762f75ace70
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
