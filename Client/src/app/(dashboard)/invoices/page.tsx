@@ -1,168 +1,261 @@
 "use client";
 
-import { useEffect, useState, startTransition } from "react";
-import { Plus, Search, Eye, CheckCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { PaymentRecordModal } from "@/components/payment-record-modal";
+import { getInvoices, type StudentInvoice, type PaginationMeta } from "@/lib/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const statusOptions = [
+  { value: "", label: "All Statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+  { value: "overdue", label: "Overdue" },
+];
 
-function authHeaders(): Record<string, string> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("driving_school_token") : null;
-  return token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-}
+const invoiceTypeOptions = [
+  { value: "", label: "All Types" },
+  { value: "Registration and Theory Fee", label: "Registration & Theory" },
+  { value: "Practical Fee Release", label: "Practical Fee" },
+  { value: "Government Penalty", label: "Government Penalty" },
+];
 
-type Invoice = {
-  id: number;
-  student_id: number;
-  invoice_number: string | null;
-  amount: number;
-  milestone_type: string;
-  status: string;
-  paid_at: string | null;
-  due_date: string | null;
-  description: string | null;
-  created_at: string;
-};
-
-const statusStyles: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  paid: "bg-emerald-100 text-emerald-800",
-  overdue: "bg-red-100 text-red-800",
+const statusBadgeVariant: Record<string, "success" | "warning" | "destructive" | "secondary"> = {
+  paid: "success",
+  pending: "warning",
+  overdue: "destructive",
 };
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const router = useRouter();
+  const [invoices, setInvoices] = useState<StudentInvoice[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/invoices`, { headers: authHeaders() });
-      const json = await res.json();
-      if (json.success) setInvoices(json.data || []);
-    } catch {
-      // silent
-    }
-    setLoading(false);
-  };
-
-  const markAsPaid = async (id: number) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/invoices/${id}/mark_paid`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      const json = await res.json();
-      if (json.success) fetchInvoices();
-    } catch {
-      // silent
-    }
-  };
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [payingInvoice, setPayingInvoice] = useState<StudentInvoice | null>(null);
 
   useEffect(() => {
-    startTransition(() => fetchInvoices());
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const filtered = invoices.filter((inv) =>
-    inv.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-    inv.description?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    getInvoices({
+      status: statusFilter || undefined,
+      invoice_type: typeFilter || undefined,
+      search: debouncedSearch || undefined,
+      page,
+      per_page: 20,
+    }).then((res) => {
+      if (res.success && res.data) {
+        setInvoices(res.data.invoices);
+        if (res.data.meta) setMeta(res.data.meta);
+      }
+      setLoading(false);
+    });
+  }, [statusFilter, typeFilter, debouncedSearch, page]);
 
-  const stats = {
-    total: invoices.length,
-    pending: invoices.filter((i) => i.status === "pending").length,
-    paid: invoices.filter((i) => i.status === "paid").length,
-    overdue: invoices.filter((i) => i.status === "overdue").length,
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
   };
+
+  const handleTypeFilter = (value: string) => {
+    setTypeFilter(value);
+    setPage(1);
+  };
+
+  const totalPages = meta?.total_pages ?? 1;
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(1, page - 2);
+    const end = Math.min(totalPages, page + 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }, [page, totalPages]);
+
+  const columns: Column<StudentInvoice>[] = useMemo(() => [
+    {
+      header: "Invoice #",
+      accessorKey: "invoice_number",
+      className: "font-mono text-xs text-slate-600",
+    },
+    {
+      header: "Student Name",
+      cell: (inv) => (
+        <span className="font-medium text-[#0f172a]">{inv.student_name || "—"}</span>
+      ),
+    },
+    {
+      header: "Type",
+      cell: (inv) => <span className="text-slate-600">{inv.invoice_type}</span>,
+    },
+    {
+      header: "Amount",
+      cell: (inv) => (
+        <span className="font-medium text-[#0f172a]">{inv.amount.toLocaleString()} ETB</span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (inv) => (
+        <Badge variant={statusBadgeVariant[inv.status] ?? "secondary"}>
+          {inv.status}
+        </Badge>
+      ),
+    },
+    {
+      header: "Due Date",
+      cell: (inv) => (
+        <span className="text-slate-500">{new Date(inv.due_date).toLocaleDateString()}</span>
+      ),
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      cell: (inv) => (
+        <div className="flex justify-end gap-2">
+          {inv.status !== "paid" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPayingInvoice(inv);
+              }}
+            >
+              Mark as Paid
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ], []);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-[#0f172a]">Invoices</h1>
+        {/* Create Invoice — pending backend endpoint */}
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pending</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-yellow-600">{stats.pending}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-emerald-600">{stats.paid}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Overdue</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-red-600">{stats.overdue}</div></CardContent>
-        </Card>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Search invoices..."
-            className="pl-9"
+            placeholder="Search by student name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
           />
         </div>
+        <Select value={statusFilter} onValueChange={handleStatusFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={handleTypeFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            {invoiceTypeOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+      <DataTable
+        columns={columns}
+        data={invoices}
+        loading={loading}
+        emptyMessage={
+          debouncedSearch || statusFilter || typeFilter
+            ? "No invoices match your filters."
+            : "No invoices found."
+        }
+        onRowClick={(inv) => router.push(`/invoices/${(inv as StudentInvoice).id}`)}
+      />
+
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          {pageNumbers.map((p) => (
+            <Button
+              key={p}
+              variant={p === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPage(p)}
+            >
+              {p}
+            </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-      ) : (
-        <div className="rounded-lg border">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 text-sm font-medium">Invoice</th>
-                <th className="text-left p-3 text-sm font-medium">Description</th>
-                <th className="text-left p-3 text-sm font-medium">Amount</th>
-                <th className="text-left p-3 text-sm font-medium">Status</th>
-                <th className="text-left p-3 text-sm font-medium">Due Date</th>
-                <th className="text-right p-3 text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No invoices found</td></tr>
-              ) : (
-                filtered.map((inv) => (
-                  <tr key={inv.id} className="border-b last:border-0">
-                    <td className="p-3 text-sm font-mono">{inv.invoice_number || `#${inv.id}`}</td>
-                    <td className="p-3 text-sm">{inv.description || inv.milestone_type}</td>
-                    <td className="p-3 text-sm font-medium">{inv.amount.toLocaleString()} ETB</td>
-                    <td className="p-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${statusStyles[inv.status] || "bg-gray-100"}`}>
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
-                    <td className="p-3 text-right">
-                      {inv.status === "pending" && (
-                        <Button size="sm" variant="outline" onClick={() => markAsPaid(inv.id)}>
-                          <CheckCircle className="mr-1 h-4 w-4" />
-                          Mark Paid
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      )}
+
+      {payingInvoice && (
+        <PaymentRecordModal
+          invoice={payingInvoice}
+          open={true}
+          onClose={() => setPayingInvoice(null)}
+          onSuccess={() => {
+            setPayingInvoice(null);
+            getInvoices({
+              status: statusFilter || undefined,
+              invoice_type: typeFilter || undefined,
+              search: debouncedSearch || undefined,
+              page,
+              per_page: 20,
+            }).then((res) => {
+              if (res.success && res.data) {
+                setInvoices(res.data.invoices);
+                if (res.data.meta) setMeta(res.data.meta);
+              }
+            });
+          }}
+        />
       )}
     </div>
   );
