@@ -42,8 +42,8 @@ export function CategoryStep({ onBack, onContinue }: CategoryStepProps) {
           signal: controller.signal,
         });
         if (!res.ok) throw new Error("Failed to load categories");
-        const data = await res.json();
-        setCategories(data);
+        const json = await res.json();
+        setCategories(json.data ?? json);
       } catch (err) {
         if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : "Failed to load categories");

@@ -19,7 +19,7 @@ export type DataTableProps<T> = {
 
 export function DataTable<T extends Record<string, unknown>>({
   columns,
-  data,
+  data = [],
   loading,
   emptyMessage = "No results found.",
   onRowClick,

@@ -33,8 +33,17 @@ export default function ReportsPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/financial_reports/summary`, { headers: authHeaders() });
       const json = await res.json();
-      if (json.success) setSummary(json.data);
-      else setError(firstError(json.errors) || "Failed to load financial summary");
+      if (json.success) {
+        const d = json.data;
+        setSummary({
+          total_revenue: parseFloat(d.revenue?.total_revenue ?? "0"),
+          total_collected: parseFloat(d.collections?.total_collected ?? "0"),
+          total_pending: parseFloat(d.collections?.pending_amount ?? "0"),
+          invoice_count: d.revenue?.invoice_count ?? 0,
+          paid_count: d.collections?.collection_rate ? (d.revenue?.invoice_count ?? 0) : 0,
+          pending_count: d.collections?.pending_count ?? 0,
+        });
+      } else setError(firstError(json.errors) || "Failed to load financial summary");
     } catch {
       setError("Network error. Please check your connection.");
     }

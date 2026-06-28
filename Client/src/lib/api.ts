@@ -203,15 +203,16 @@ export function mapEnrollmentFormDataToPayload(data: EnrollmentFormData) {
     student_id: generateId("STU", data.phone),
     document_id: generateId("DOC", data.phone),
     first_name: data.firstName.trim(),
+    middle_name: data.lastName.trim(),
     last_name: data.lastName.trim(),
     date_of_birth: data.dateOfBirth,
+    blood_type: "O+",
     address: data.address.trim(),
-    // Extra fields — the backend may permit these in future
+    house_number: "N/A",
+    woreda: "N/A",
+    city: "N/A",
     email: data.email.trim(),
-    phone: data.phone.trim(),
     license_category: data.licenseCategory,
-    payment_method: data.paymentMethod,
-    payment_notes: data.paymentNotes?.trim() ?? "",
   };
 }
 
@@ -464,7 +465,7 @@ export async function getInvoices(params?: Record<string, unknown>): Promise<Api
     const response = await fetch(`${API_BASE_URL}/api/v1/invoices${qs}`, { headers: authHeaders() });
     const json = await response.json();
     if (!response.ok) return { success: false, error: json.error || "Failed to fetch invoices" };
-    return { success: true, data: json };
+    return { success: true, data: { invoices: json.data ?? [], meta: json.meta } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Network error" };
   }
@@ -805,6 +806,22 @@ export async function createBatch(data: Record<string, unknown>): Promise<ApiRes
     });
     const json = await res.json();
     if (!res.ok) return { success: false, error: json.error || "Failed to create batch", errors: json.errors };
+    return { success: true, data: json };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// PATCH /api/v1/batches/:id
+export async function updateBatch(id: number, data: Record<string, unknown>): Promise<ApiResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/batches/${id}`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ batch: data }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.error || "Failed to update batch", errors: json.errors };
     return { success: true, data: json };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Network error" };

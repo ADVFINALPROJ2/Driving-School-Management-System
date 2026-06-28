@@ -9,6 +9,7 @@ import {
   BarChart3,
   UserCog,
   DollarSign,
+  Layers,
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ const navConfig: Record<Role, NavItem[]> = {
   admin: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+    { href: "/batches", label: "Batches", icon: Layers },
     { href: "/invoices", label: "Invoices", icon: FileText },
     { href: "/financial-reports", label: "Financial Reports", icon: BarChart3 },
     { href: "/users", label: "Users", icon: UserCog },
@@ -33,6 +35,7 @@ const navConfig: Record<Role, NavItem[]> = {
   clerk: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/students", label: "Students", icon: Users },
+    { href: "/batches", label: "Batches", icon: Layers },
     { href: "/invoices", label: "Invoices", icon: FileText },
   ],
   instructor: [

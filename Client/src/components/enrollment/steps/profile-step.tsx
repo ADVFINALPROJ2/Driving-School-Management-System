@@ -31,7 +31,6 @@ export function ProfileStep({ onContinue }: ProfileStepProps) {
 
   return (
     <ProfileStepForm
-      key={JSON.stringify(formData)}
       formData={formData}
       onContinue={onContinue}
       updateFormData={updateFormData}

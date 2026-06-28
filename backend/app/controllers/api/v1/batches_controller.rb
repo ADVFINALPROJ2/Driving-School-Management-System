@@ -9,7 +9,7 @@ module Api
     # submitted, ERTA either approves or rejects the entire batch, which
     # graduates or returns the contained students.
     class BatchesController < BaseController
-      before_action :set_batch, only: [ :show ]
+      before_action :set_batch, only: [ :show, :update ]
 
       # GET /api/v1/batches
       def index
@@ -38,6 +38,17 @@ module Api
           render_success(@batch, status: :created)
         else
           render_error("Failed to create batch", errors: @batch.errors.full_messages)
+        end
+      end
+
+      # PATCH /api/v1/batches/:id
+      def update
+        authorize @batch
+
+        if @batch.update(batch_params)
+          render_success(@batch)
+        else
+          render_error("Failed to update batch", errors: @batch.errors.full_messages)
         end
       end
 

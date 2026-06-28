@@ -13,6 +13,10 @@ class BatchPolicy < ApplicationPolicy
     admin_or_clerk?
   end
 
+  def update?
+    admin_or_clerk?
+  end
+
   private
 
   def staff?

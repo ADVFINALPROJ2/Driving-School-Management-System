@@ -105,8 +105,8 @@ export default function DashboardPage() {
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map(({ label, key, icon: Icon, color }) => (
-          <div key={label} className="rounded-xl border bg-card p-5 shadow-sm">
+        {statCards.map(({ label, key, icon: Icon, color }) => {
+          const card = (
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{label}</p>
@@ -122,8 +122,15 @@ export default function DashboardPage() {
                 <Icon className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
-        ))}
+          );
+          return key === "totalBatches" ? (
+            <Link key={label} href="/batches" className="rounded-xl border bg-card p-5 shadow-sm block transition-colors hover:bg-accent">
+              {card}
+            </Link>
+          ) : (
+            <div key={label} className="rounded-xl border bg-card p-5 shadow-sm">{card}</div>
+          );
+        })}
       </div>
 
       {/* Status Breakdown */}
