@@ -477,7 +477,38 @@ export async function getUsers(): Promise<ApiResponse<User[]>> {
     const response = await fetch(`${API_BASE_URL}/api/v1/users`, { headers: authHeaders() });
     const json = await response.json();
     if (!response.ok) return { success: false, error: json.error || "Failed to fetch users" };
-    return { success: true, data: json };
+    return { success: true, data: json.data };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// PATCH /api/v1/users/:id
+export async function updateUser(id: number, data: Record<string, unknown>): Promise<ApiResponse<User>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ user: data }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.error || "Failed to update user", errors: json.errors };
+    return { success: true, data: json.data };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+  }
+}
+
+// DELETE /api/v1/users/:id
+export async function deleteUser(id: number): Promise<ApiResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/users/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.error || "Failed to delete user" };
+    return { success: true, data: json.data };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Network error" };
   }
