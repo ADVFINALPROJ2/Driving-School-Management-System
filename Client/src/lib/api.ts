@@ -203,15 +203,16 @@ export function mapEnrollmentFormDataToPayload(data: EnrollmentFormData) {
     student_id: generateId("STU", data.phone),
     document_id: generateId("DOC", data.phone),
     first_name: data.firstName.trim(),
+    middle_name: data.lastName.trim(),
     last_name: data.lastName.trim(),
     date_of_birth: data.dateOfBirth,
+    blood_type: "O+",
     address: data.address.trim(),
-    // Extra fields — the backend may permit these in future
+    house_number: "N/A",
+    woreda: "N/A",
+    city: "N/A",
     email: data.email.trim(),
-    phone: data.phone.trim(),
     license_category: data.licenseCategory,
-    payment_method: data.paymentMethod,
-    payment_notes: data.paymentNotes?.trim() ?? "",
   };
 }
 
