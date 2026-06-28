@@ -47,6 +47,9 @@ Rails.application.routes.draw do
         resource :lms_progress, only: [ :show ]
       end
 
+      # Top-level exam bookings (admin/clerk overview)
+      resources :exam_bookings, only: [ :index ]
+
       # Finance Module - Invoice management
       resources :invoices, only: [ :index, :show ] do
         post :mark_paid, on: :member

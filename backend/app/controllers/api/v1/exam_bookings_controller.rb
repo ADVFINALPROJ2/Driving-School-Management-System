@@ -3,15 +3,23 @@
 module Api
   module V1
     class ExamBookingsController < BaseController
-      before_action :set_student
+      before_action :set_student, unless: :top_level_index?
       before_action :set_exam_booking, only: %i[show update cancel record_result]
       before_action :validate_eligibility, only: %i[create]
 
-      # GET /api/v1/students/:student_id/exam_bookings
+      # GET /api/v1/exam_bookings (top-level) or /api/v1/students/:student_id/exam_bookings
       def index
         authorize ExamBooking
-        @exam_bookings = @student.exam_bookings.order(scheduled_date: :asc)
+        @exam_bookings = if top_level_index?
+                           ExamBooking.all.includes(:student).order(scheduled_date: :asc)
+                         else
+                           @student.exam_bookings.order(scheduled_date: :asc)
+                         end
         render_success(@exam_bookings)
+      end
+
+      def top_level_index?
+        params[:student_id].blank?
       end
 
       # GET /api/v1/students/:student_id/exam_bookings/:id

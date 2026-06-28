@@ -3,6 +3,12 @@
 
 # Production schedule - runs in production environment
 production:
+  # ERTA Countdown Monitor - Daily at 1:00 AM
+  erta_countdown_monitor:
+    class: ErtaCountdownMonitorJob
+    schedule: "0 1 * * *"
+    queue: default
+
   # Attendance Breach Scanner - Daily at 2:00 AM
   attendance_breach_scan:
     class: AttendanceBreachScanJob
@@ -30,6 +36,12 @@ production:
 
 # Development schedule - for testing recurring jobs locally
 development:
+  # ERTA Countdown Monitor - Every hour for testing
+  erta_countdown_monitor:
+    class: ErtaCountdownMonitorJob
+    schedule: "0 * * * *"
+    queue: default
+
   # Attendance Breach Scanner - Every hour for testing
   attendance_breach_scan:
     class: AttendanceBreachScanJob

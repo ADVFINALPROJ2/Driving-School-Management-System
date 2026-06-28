@@ -19,31 +19,40 @@ module Meklit
 
       logger.info "[BatchingService] Starting batch export for batch #{batch.id}"
 
-      # Step 1: Validate all students in batch
+      # Step 1: Transition students from registered to queued_for_meklit
+      queue_students
+      return error_result("No students to export") if batch.students.empty?
+
+      # Step 2: Validate all students in batch
       unless validate_students
         return error_result("Student validation failed")
       end
 
-      # Step 2: Generate payload
+      # Step 3: Transition students to sent_to_meklit
+      batch.students.find_each do |student|
+        student.send_to_meklit! if student.may_send_to_meklit?
+      end
+
+      # Step 4: Generate payload
       payload = generate_payload
       # Persist the generated payload for audit trail
       batch.update!(export_payload: payload)
       logger.info "[BatchingService] Payload generated for #{batch.students.count} students"
 
-      # Step 3: Submit to ERTA API
+      # Step 5: Submit to ERTA API
       api_response = submit_to_api(payload)
       unless api_response[:success]
         return error_result("API submission failed: #{api_response[:error]}")
       end
 
-      # Step 4: Update batch status
+      # Step 6: Update batch status
       batch.update!(status: "submitted", submitted_at: Time.current)
       logger.info "[BatchingService] Batch #{batch.id} successfully submitted to ERTA"
 
-      # Step 5: Send submission notification email
+      # Step 7: Send submission notification email
       send_submission_email
 
-      # Step 6: Schedule response check job
+      # Step 8: Schedule response check job
       schedule_response_check
 
       { success: true, batch_id: batch.id, api_response: api_response }
@@ -51,6 +60,15 @@ module Meklit
       logger.error "[BatchingService] Error during batch export: #{e.message}"
       logger.error e.backtrace.join("\n")
       error_result("Unexpected error: #{e.message}")
+    end
+
+    # Transition all pending students from registered to queued_for_meklit
+    def queue_students
+      batch.students.where(status: "registered").find_each do |student|
+        student.queue_for_meklit!
+      rescue AASM::InvalidTransition => e
+        logger.warn "[BatchingService] Student #{student.student_id} could not be queued: #{e.message}"
+      end
     end
 
     private

@@ -115,23 +115,25 @@ module Finance
     end
 
     def count_active_students
-      # TODO: Replace with actual Student-Instructor relationship query when implemented
-      # instructor.students.where(status: [:theory_in_progress, :practical_in_progress, :exam_eligible]).count
-      
-      # Mock implementation - return random count for now
-      # In production, this would query the actual student-instructor assignments
-      0
+      Student.where(instructor_id: instructor.id)
+             .where(status: %w[theory_in_progress practical_in_progress exam_eligible])
+             .count
     end
 
     def calculate_pass_rate
-      # TODO: Replace with actual exam results query when implemented
-      # total_exams = instructor.students.joins(:exam_bookings).where('exam_bookings.result IS NOT NULL').count
-      # passed_exams = instructor.students.joins(:exam_bookings).where(exam_bookings: { result: 'pass' }).count
-      # total_exams > 0 ? (passed_exams.to_f / total_exams * 100) : 0.0
-      
-      # Mock implementation - return 0 for now
-      # In production, this would calculate actual pass rate from exam results
-      0.0
+      total_exams = ExamBooking.joins(student: :instructor)
+                               .where(students: { instructor_id: instructor.id })
+                               .where.not(score: nil)
+                               .count
+
+      return 0.0 if total_exams.zero?
+
+      passed_exams = ExamBooking.joins(student: :instructor)
+                                .where(students: { instructor_id: instructor.id })
+                                .where("score >= ?", ExamBooking::PASSING_SCORE)
+                                .count
+
+      (passed_exams.to_f / total_exams * 100).round(2)
     end
 
     def create_payroll_entry(breakdown)

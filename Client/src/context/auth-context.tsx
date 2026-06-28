@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
+export type Role = "admin" | "clerk" | "instructor" | "student";
 import type { User } from "@/lib/auth";
 import {
   getToken,

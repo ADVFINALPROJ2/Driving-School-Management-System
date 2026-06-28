@@ -60,5 +60,23 @@ module Lms
     rescue AASM::InvalidTransition => e
       Rails.logger.warn "[Lms::AttendanceRecorder] AASM transition skipped: #{e.message}"
     end
+
+    def record_mock_test_failure
+      student.fail_mock_test! if student.may_fail_mock_test?
+    rescue AASM::InvalidTransition => e
+      Rails.logger.warn "[Lms::AttendanceRecorder] Mock test failure transition skipped: #{e.message}"
+    end
+
+    def record_practical_exam_failure
+      student.fail_practical_exam! if student.may_fail_practical_exam?
+    rescue AASM::InvalidTransition => e
+      Rails.logger.warn "[Lms::AttendanceRecorder] Practical exam failure transition skipped: #{e.message}"
+    end
+
+    def record_remedial_completion
+      student.complete_remedial! if student.may_complete_remedial?
+    rescue AASM::InvalidTransition => e
+      Rails.logger.warn "[Lms::AttendanceRecorder] Remedial completion transition skipped: #{e.message}"
+    end
   end
 end

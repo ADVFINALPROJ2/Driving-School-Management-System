@@ -6,8 +6,9 @@ const protectedPaths = [
   "/students",
   "/dashboard",
   "/admin",
-  "/receptionist",
+  "/clerk",
   "/instructor",
+  "/student",
 ];
 
 function matchesProtectedPath(pathname: string): boolean {
@@ -21,8 +22,9 @@ function matchesProtectedPath(pathname: string): boolean {
 
 const roleAccess: Record<string, string[]> = {
   "/admin": ["admin"],
-  "/receptionist": ["admin", "receptionist"],
+  "/clerk": ["admin", "clerk"],
   "/instructor": ["admin", "instructor"],
+  "/student": ["admin", "student"],
 };
 
 function getRequiredSegments(pathname: string): string[] {
@@ -67,7 +69,8 @@ export const config = {
     "/students/:path*",
     "/dashboard/:path*",
     "/admin/:path*",
-    "/receptionist/:path*",
+    "/clerk/:path*",
     "/instructor/:path*",
+    "/student/:path*",
   ],
 };

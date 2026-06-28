@@ -41,7 +41,7 @@ const quickActions = [
   {
     label: "Exam Bookings",
     description: "Schedule and manage exam appointments",
-    href: "#",
+    href: "/exam-bookings",
     icon: CalendarCheck,
     color: "bg-amber-500",
   },

@@ -55,8 +55,13 @@ module Meklit
         rejection_reason: nil
       )
 
-      # Update all students in batch to graduated status
-      batch.students.update_all(status: "graduated")
+      # Transition all students through the Meklit lifecycle
+      batch.students.find_each do |student|
+        student.approve_by_meklit!
+        logger.info "[ResponseHandler] Student #{student.student_id} approved by Meklit"
+      rescue AASM::InvalidTransition
+        logger.warn "[ResponseHandler] Student #{student.student_id} could not transition to approved (current: #{student.status})"
+      end
 
       # Send approval notification emails
       send_batch_approval_emails
@@ -77,8 +82,13 @@ module Meklit
         rejection_reason: rejection_reason
       )
 
-      # Optionally update student statuses back to exam_eligible
-      batch.students.update_all(status: "exam_eligible")
+      # Transition students to rejected state via AASM
+      batch.students.find_each do |student|
+        student.reject_by_meklit!
+        logger.warn "[ResponseHandler] Student #{student.student_id} rejected by Meklit"
+      rescue AASM::InvalidTransition
+        logger.warn "[ResponseHandler] Student #{student.student_id} could not transition to rejected (current: #{student.status})"
+      end
 
       logger.warn "[ResponseHandler] Batch #{batch.id} rejected by ERTA: #{rejection_reason}"
       true
@@ -112,12 +122,14 @@ module Meklit
         next unless student
 
         if student_response[:status] == "approved"
-          student.update!(status: "graduated")
+          student.approve_by_meklit!
           logger.info "[ResponseHandler] Student #{student.student_id} approved"
         else
-          student.update!(status: "exam_eligible")
+          student.reject_by_meklit!
           logger.warn "[ResponseHandler] Student #{student.student_id} rejected: #{student_response[:reason]}"
         end
+      rescue AASM::InvalidTransition => e
+        logger.warn "[ResponseHandler] AASM transition failed for student #{student&.student_id}: #{e.message}"
       end
     end
 
