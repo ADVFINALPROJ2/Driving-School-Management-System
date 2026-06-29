@@ -398,24 +398,24 @@ puts "Total: #{result[:breakdown][:total_salary]} ETB"
 
 ```bash
 # Get auth token
-TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"password"}' \
   | jq -r '.token')
 
 # List invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/v1/invoices | jq
+  http://localhost:8080/api/v1/invoices | jq
 
 # Get student invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/v1/students/STUDENT_ID/invoices | jq
+  http://localhost:8080/api/v1/students/STUDENT_ID/invoices | jq
 
 # Mark invoice as paid
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"payment_method":"cash","payment_reference":"CASH-001"}' \
-  http://localhost:3000/api/v1/invoices/INVOICE_ID/mark_paid | jq
+  http://localhost:8080/api/v1/invoices/INVOICE_ID/mark_paid | jq
 ```
 
 ---

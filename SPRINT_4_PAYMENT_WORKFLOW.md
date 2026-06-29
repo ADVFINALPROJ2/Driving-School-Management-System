@@ -295,41 +295,41 @@ PaymentReconciliationJob.perform_now
 
 ```bash
 # Get auth token
-TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@drivingschool.et","password":"Password123!"}' \
   | jq -r '.token')
 
 # Get financial summary
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/financial_reports/summary?start_date=2024-01-01&end_date=2024-01-31" \
+  "http://localhost:8080/api/v1/financial_reports/summary?start_date=2024-01-01&end_date=2024-01-31" \
   | jq
 
 # Get revenue report
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/financial_reports/revenue" \
+  "http://localhost:8080/api/v1/financial_reports/revenue" \
   | jq
 
 # Get collections report
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/financial_reports/collections" \
+  "http://localhost:8080/api/v1/financial_reports/collections" \
   | jq
 
 # Get monthly comparison
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/financial_reports/monthly_comparison?months=3" \
+  "http://localhost:8080/api/v1/financial_reports/monthly_comparison?months=3" \
   | jq
 
 # Trigger manual reconciliation
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"start_date":"2024-01-01","end_date":"2024-01-31"}' \
-  "http://localhost:3000/api/v1/financial_reports/reconcile" \
+  "http://localhost:8080/api/v1/financial_reports/reconcile" \
   | jq
 
 # Export CSV
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/financial_reports/export?start_date=2024-01-01&end_date=2024-01-31" \
+  "http://localhost:8080/api/v1/financial_reports/export?start_date=2024-01-01&end_date=2024-01-31" \
   -o financial_report.csv
 ```
 

@@ -380,7 +380,7 @@ You have:
 ### Finance Module Resources
 - **Main Docs**: `backend/FINANCE_MODULE_README.md`
 - **Testing Guide**: `SPRINT_2_TESTING_GUIDE.md`
-- **API Docs**: `http://localhost:3000/api-docs`
+- **API Docs**: `http://localhost:8080/api-docs`
 - **Code**: `backend/app/services/finance/`
 
 ### Team Integration

@@ -155,7 +155,7 @@ Sprint 5-6 adds comprehensive test coverage and OpenAPI/Swagger documentation fo
 Running RSpec with `--format documentation` or using rswag generates:
 
 **Swagger JSON**: `swagger/v1/swagger.json`
-**Swagger UI**: Available at `http://localhost:3000/api-docs`
+**Swagger UI**: Available at `http://localhost:8080/api-docs`
 
 ### Documentation Features
 
@@ -183,7 +183,7 @@ Running RSpec with `--format documentation` or using rswag generates:
 
 2. **Visit Swagger UI**:
    ```
-   http://localhost:3000/api-docs
+   http://localhost:8080/api-docs
    ```
 
 3. **Authenticate**:
@@ -222,7 +222,7 @@ docker-compose exec rails-api rspec spec/jobs/payment_reconciliation_job_spec.rb
 docker-compose exec rails-api rake rswag:specs:swaggerize
 
 # View generated documentation
-open http://localhost:3000/api-docs
+open http://localhost:8080/api-docs
 ```
 
 ### Coverage Report

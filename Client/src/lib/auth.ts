@@ -9,7 +9,7 @@ export interface User {
 }
 
 const TOKEN_KEY = "driving_school_token";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 
 export function getToken(): string | null {

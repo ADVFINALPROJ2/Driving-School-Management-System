@@ -109,7 +109,7 @@ module Meklit
       if student.respond_to?(doc_type) && student.send(doc_type).attached?
         Rails.application.routes.url_helpers.rails_blob_url(
           student.send(doc_type),
-          host: ENV.fetch("APP_HOST", "localhost:3001")
+          host: ENV.fetch("APP_HOST", "localhost:8080")
         )
       elsif student.respond_to?("#{doc_type}_path")
         student.send("#{doc_type}_path")

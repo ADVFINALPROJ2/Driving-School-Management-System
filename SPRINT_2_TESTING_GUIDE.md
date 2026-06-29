@@ -207,7 +207,7 @@ end
 
 ```bash
 # Register or login
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -223,23 +223,23 @@ export TOKEN="<paste_token_here>"
 ```bash
 # 1. List all invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/v1/invoices | jq
+  http://localhost:8080/api/v1/invoices | jq
 
 # 2. List pending invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/invoices?status=pending" | jq
+  "http://localhost:8080/api/v1/invoices?status=pending" | jq
 
 # 3. List milestone invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3000/api/v1/invoices?invoice_type=milestone_1" | jq
+  "http://localhost:8080/api/v1/invoices?invoice_type=milestone_1" | jq
 
 # 4. Get specific invoice
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/v1/invoices/<INVOICE_ID> | jq
+  http://localhost:8080/api/v1/invoices/<INVOICE_ID> | jq
 
 # 5. Get student invoices
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/v1/students/<STUDENT_ID>/invoices | jq
+  http://localhost:8080/api/v1/students/<STUDENT_ID>/invoices | jq
 
 # 6. Mark invoice as paid
 curl -X POST \
@@ -249,7 +249,7 @@ curl -X POST \
     "payment_method": "cash",
     "payment_reference": "CASH-TEST-001"
   }' \
-  http://localhost:3000/api/v1/invoices/<INVOICE_ID>/mark_paid | jq
+  http://localhost:8080/api/v1/invoices/<INVOICE_ID>/mark_paid | jq
 ```
 
 ---
