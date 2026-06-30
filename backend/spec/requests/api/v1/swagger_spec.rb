@@ -3,7 +3,9 @@
 require "swagger_helper"
 
 RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
-  let(:user) { create(:user) }
+  # Admin so authenticated endpoints pass Pundit authorization (a default
+  # student-role user would get 403 on the admin/clerk-scoped routes here).
+  let(:user) { create(:user, :admin) }
   let(:batch) { create(:batch) }
   let(:student) { create(:student, batch: batch) }
   let(:exam_booking) { create(:exam_booking, student: student) }
@@ -210,7 +212,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
         let(:id) { student.id }
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body["id"]).to eq(student.id)
+          expect(body["data"]["id"]).to eq(student.id)
         end
       end
 
@@ -288,7 +290,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
         let(:id) { create(:batch).id }
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body["id"]).to be_present
+          expect(body["data"]["id"]).to be_present
         end
       end
 
@@ -339,6 +341,9 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       response "201", "Exam booking created" do
         let(:student_id) { student.id }
         let(:exam_booking) { { exam_booking: { exam_type: "theory", scheduled_date: 1.month.from_now, venue: "Main Hall" } } }
+        # Eligibility gatekeeping is covered by ERTA::EligibilityValidator specs;
+        # here we document the booking-creation success response.
+        before { allow_any_instance_of(ERTA::EligibilityValidator).to receive(:call).and_return(true) }
         run_test!
       end
     end
@@ -381,7 +386,8 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
 
       response "200", "Exam booking updated" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { venue: "New Venue" } } }
         run_test!
       end
@@ -430,19 +436,21 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
 
       response "200", "Score recorded (passing)" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { score: 75, notes: "Good performance" } } }
         run_test! do
-          expect(exam_booking.reload.status).to eq("completed")
+          expect(booking.reload.status).to eq("completed")
         end
       end
 
       response "200", "Score recorded (failing, penalty applied)" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { score: 30, notes: "Needs improvement" } } }
         run_test! do
-          expect(exam_booking.reload.status).to eq("completed")
+          expect(booking.reload.status).to eq("completed")
           expect(student.reload.under_penalty).to be true
         end
       end
@@ -564,7 +572,8 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
         run_test! do |response|
           body = JSON.parse(response.body)
           expect(body["success"]).to be true
-          expect(body["data"]).to have_key("theory_percent")
+          expect(body["data"]).to have_key("theory")
+          expect(body["data"]["theory"]).to have_key("percentage")
         end
       end
 
@@ -586,8 +595,8 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       response "200", "License categories with pricing" do
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body).to be_an(Array)
-          expect(body.size).to eq(4)
+          expect(body["data"]).to be_an(Array)
+          expect(body["data"].size).to eq(4)
         end
       end
     end
@@ -610,6 +619,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       end
 
       response "403", "Forbidden for non-admin" do
+        let(:user) { create(:user) } # non-admin (student) → Pundit denies
         run_test!
       end
     end
@@ -642,6 +652,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       end
 
       response "403", "Forbidden for non-admin" do
+        let(:user) { create(:user) } # non-admin (student) → Pundit denies
         let(:user_params) { { user: { email: "x@example.com", password: "Password123!", full_name: "X" } } }
         run_test!
       end

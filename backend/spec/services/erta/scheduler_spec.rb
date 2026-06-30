@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe ERTA::Scheduler do
   subject(:scheduler) { described_class.new(student) }
 
-  let(:student) { build_stubbed(:student, status: "exam_eligible") }
+  let(:student) { create(:student, status: "exam_eligible") }
 
   describe "#book_slot" do
     context "when student is eligible" do

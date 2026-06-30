@@ -3,7 +3,12 @@
 require 'swagger_helper'
 
 RSpec.describe 'api/v1/financial_reports', type: :request do
-  path '/api/v1/financial_reports/summary' do
+  # Financial reports are admin/clerk-scoped; authenticate as admin so rswag's
+  # Bearer security parameter resolves and Pundit authorizes the request.
+  let(:user) { create(:user, :admin) }
+  let(:Authorization) { "Bearer #{Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first}" }
+
+  path '/financial_reports/summary' do
     get('get financial summary') do
       tags 'Finance - Reports'
       description 'Get comprehensive financial summary including revenue, collections, and outstanding payments'
@@ -67,12 +72,13 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       end
 
       response(401, 'unauthorized') do
+        let(:Authorization) { nil }
         run_test!
       end
     end
   end
 
-  path '/api/v1/financial_reports/revenue' do
+  path '/financial_reports/revenue' do
     get('get revenue report') do
       tags 'Finance - Reports'
       description 'Get detailed revenue analytics by type, tier, and trends'
@@ -140,7 +146,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
     end
   end
 
-  path '/api/v1/financial_reports/collections' do
+  path '/financial_reports/collections' do
     get('get collections report') do
       tags 'Finance - Reports'
       description 'Get collection performance metrics and outstanding payments analysis'
@@ -193,7 +199,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
     end
   end
 
-  path '/api/v1/financial_reports/monthly_comparison' do
+  path '/financial_reports/monthly_comparison' do
     get('get monthly comparison') do
       tags 'Finance - Reports'
       description 'Compare financial metrics across multiple months'
@@ -226,7 +232,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
     end
   end
 
-  path '/api/v1/financial_reports/export' do
+  path '/financial_reports/export' do
     get('export financial report') do
       tags 'Finance - Reports'
       description 'Export financial report as CSV file'
@@ -244,7 +250,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
     end
   end
 
-  path '/api/v1/financial_reports/reconcile' do
+  path '/financial_reports/reconcile' do
     post('trigger payment reconciliation') do
       tags 'Finance - Reports'
       description 'Manually trigger payment reconciliation for a date range'
@@ -261,6 +267,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       }
 
       response(200, 'successful') do
+        let(:reconciliation_params) { {} }
         schema type: :object,
           properties: {
             success: { type: :boolean },
@@ -294,6 +301,11 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       end
 
       response(422, 'unprocessable entity') do
+        let(:reconciliation_params) { {} }
+        before do
+          allow_any_instance_of(Finance::PaymentReconciliation)
+            .to receive(:reconcile_all).and_raise(StandardError, 'reconciliation failed')
+        end
         run_test!
       end
     end

@@ -53,9 +53,15 @@ RSpec.describe ExamBooking, type: :model do
 
   describe 'scopes' do
     before do
+      # One upcoming scheduled exam.
       create(:exam_booking, student: student, status: 'scheduled', scheduled_date: 1.day.from_now)
-      create(:exam_booking, student: student, status: 'completed', scheduled_date: 1.day.ago)
-      create(:exam_booking, student: student, status: 'scheduled', scheduled_date: 1.day.ago)
+      # Historical records: the model blocks creating past-dated bookings
+      # (scheduled_date_must_be_in_future, on: :create), so seed them as valid
+      # then move them into the past with update_columns (skips validations).
+      create(:exam_booking, student: student, score: 80)
+        .update_columns(status: 'completed', scheduled_date: 1.day.ago, completed_at: Time.current)
+      create(:exam_booking, student: student)
+        .update_columns(status: 'cancelled', scheduled_date: 1.day.ago)
     end
 
     it '.scheduled returns scheduled exams' do

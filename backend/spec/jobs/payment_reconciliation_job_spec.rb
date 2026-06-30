@@ -26,6 +26,9 @@ RSpec.describe PaymentReconciliationJob, type: :job do
     end
 
     it 'logs results' do
+      # The job logs several additional info lines (report breakdown); allow
+      # those and assert only the key milestones.
+      allow(Rails.logger).to receive(:info)
       expect(Rails.logger).to receive(:info).with(/PaymentReconciliationJob started/)
       expect(Rails.logger).to receive(:info).with(/Students checked/)
       expect(Rails.logger).to receive(:info).with(/PaymentReconciliationJob completed/)
@@ -57,8 +60,9 @@ RSpec.describe PaymentReconciliationJob, type: :job do
       it 'logs errors' do
         allow(Finance::PaymentReconciliation).to receive(:new).and_raise(StandardError, 'Test error')
 
-        expect(Rails.logger).to receive(:error).with(/PaymentReconciliationJob failed/)
-        expect(Rails.logger).to receive(:error).with(/Test error/)
+        # The job logs the failure (with the error message) and the backtrace.
+        allow(Rails.logger).to receive(:error)
+        expect(Rails.logger).to receive(:error).with(/PaymentReconciliationJob failed.*Test error/)
 
         begin
           described_class.perform_now

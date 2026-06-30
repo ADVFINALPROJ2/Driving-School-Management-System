@@ -59,11 +59,11 @@ RSpec.describe MeklitBatchExportJob, type: :job do
         allow(Meklit::MeklitApiClient).to receive(:new).and_return(
           instance_double(Meklit::MeklitApiClient, get_batch_response: { success: false, error: 'API error' })
         )
-        allow(described_class).to receive(:schedule_retry)
+        allow_any_instance_of(described_class).to receive(:schedule_retry)
       end
 
       it 'schedules a retry' do
-        expect(described_class).to receive(:schedule_retry).with(batch.id)
+        expect_any_instance_of(described_class).to receive(:schedule_retry).with(batch.id)
         described_class.perform_now(batch.id)
       end
     end
