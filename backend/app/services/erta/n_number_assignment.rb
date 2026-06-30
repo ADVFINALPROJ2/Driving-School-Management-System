@@ -26,9 +26,9 @@ module ERTA
       days_elapsed = (Date.current - student.meklit_approval_date.to_date).to_i
 
       required_days = case student.license_category
-                      when "motor", "auto" then 35
-                      else 52
-                      end
+      when "motor", "auto" then 35
+      else 52
+      end
 
       days_elapsed >= required_days
     end
@@ -37,12 +37,12 @@ module ERTA
       return nil unless student.meklit_approval_date
 
       required_days = case student.license_category
-                      when "motor", "auto" then 35
-                      else 52
-                      end
+      when "motor", "auto" then 35
+      else 52
+      end
 
       days_elapsed = (Date.current - student.meklit_approval_date.to_date).to_i
-      [required_days - days_elapsed, 0].max
+      [ required_days - days_elapsed, 0 ].max
     end
 
     private

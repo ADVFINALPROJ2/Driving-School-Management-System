@@ -48,7 +48,7 @@ module Finance
     def self.calculate_all_for_month(month: Date.current.month, year: Date.current.year)
       results = { processed: 0, created: 0, skipped: 0, errors: [] }
 
-      User.where(role: 'instructor').find_each do |instructor|
+      User.where(role: "instructor").find_each do |instructor|
         results[:processed] += 1
 
         calculator = new(instructor, month: month, year: year)
@@ -57,7 +57,7 @@ module Finance
         if result[:success]
           results[:created] += 1
         else
-          results[:skipped] += 1 if result[:errors].any? { |e| e.include?('already exists') }
+          results[:skipped] += 1 if result[:errors].any? { |e| e.include?("already exists") }
           results[:errors] << { instructor_id: instructor.id, errors: result[:errors] }
         end
       end
@@ -73,7 +73,7 @@ module Finance
     private
 
     def validate_instructor!
-      unless instructor.is_a?(User) && instructor.role == 'instructor'
+      unless instructor.is_a?(User) && instructor.role == "instructor"
         raise Error, "Invalid instructor: must be a User with role 'instructor'"
       end
     end
@@ -141,7 +141,7 @@ module Finance
         total_pay: breakdown[:total_pay],
         period_start: period_start,
         period_end: period_end,
-        status: 'draft'
+        status: "draft"
       )
     end
   end

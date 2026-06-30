@@ -29,12 +29,12 @@ module Finance
       validate_milestone_2_eligibility!
 
       invoice = create_milestone_2_invoice
-      
+
       @result[:success] = true
       @result[:invoice] = invoice
-      
+
       Rails.logger.info "Generated Milestone 2 invoice ##{invoice.invoice_number} for Student ##{student.id}"
-      
+
       @result
     rescue IneligibleForMilestone, MilestoneAlreadyInvoiced => e
       @result[:errors] << e.message
@@ -49,7 +49,7 @@ module Finance
 
     # Check if student is eligible for milestone 2 invoice (idempotent check)
     def milestone_2_eligible?
-      student.status == 'practical_in_progress' &&
+      student.status == "practical_in_progress" &&
         student.mock_test_score > 37 &&
         student.milestone_1_paid? &&
         !milestone_2_invoice_exists?
@@ -58,7 +58,7 @@ module Finance
     private
 
     def validate_milestone_2_eligibility!
-      unless student.status == 'practical_in_progress'
+      unless student.status == "practical_in_progress"
         raise IneligibleForMilestone, "Student must be in practical_in_progress state"
       end
 
@@ -89,7 +89,7 @@ module Finance
         milestone_type: Invoice::MILESTONE_TYPES[:practical_fee_release],
         amount: student.total_fee / 2.0,
         due_date: 30.days.from_now,
-        status: 'pending',
+        status: "pending",
         description: "Milestone 2 payment - Practical training phase (50% of total fee)"
       )
     end

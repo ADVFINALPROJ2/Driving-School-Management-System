@@ -150,7 +150,7 @@ RSpec.configure do |config|
         ApiError: {
           type: :object,
           properties: {
-            success: { type: :boolean, enum: [false] },
+            success: { type: :boolean, enum: [ false ] },
             error: {
               type: :object,
               properties: {

@@ -87,7 +87,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get current user" do
       tags "Authentication"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Current user data" do
         run_test! do |response|
@@ -107,7 +107,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     delete "Log out" do
       tags "Authentication"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Logged out successfully" do
         run_test!
@@ -121,7 +121,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List students" do
       tags "Students"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :page, in: :query, type: :integer, required: false, description: "Page number (default: 1)"
       parameter name: :per_page, in: :query, type: :integer, required: false, description: "Items per page (default: 50, max: 200)"
 
@@ -145,7 +145,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Students"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student, in: :body, required: true, schema: {
         type: :object,
         properties: {
@@ -203,7 +203,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get a student" do
       tags "Students"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :id, in: :path, type: :integer, required: true
 
       response "200", "Student data" do
@@ -227,7 +227,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List batches" do
       tags "Batches"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :page, in: :query, type: :integer, required: false
       parameter name: :per_page, in: :query, type: :integer, required: false
 
@@ -250,7 +250,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Batches"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :batch, in: :body, required: true, schema: {
         type: :object,
         properties: {
@@ -281,7 +281,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get a batch" do
       tags "Batches"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :id, in: :path, type: :integer, required: true
 
       response "200", "Batch data" do
@@ -305,7 +305,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List exam bookings for a student" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Exam bookings list" do
@@ -319,7 +319,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
         type: :object,
@@ -348,7 +348,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get an exam booking" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
 
@@ -363,7 +363,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
@@ -392,7 +392,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     post "Cancel an exam booking" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
 
@@ -411,7 +411,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
@@ -455,7 +455,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List attendance logs for a student" do
       tags "Attendance Logs"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :phase, in: :query, type: :string, required: false, description: "Filter by phase (theory/practical)"
       parameter name: :date, in: :query, type: :string, required: false, description: "Filter by date (YYYY-MM-DD)"
@@ -476,7 +476,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Attendance Logs"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :attendance_log, in: :body, required: true, schema: {
         type: :object,
@@ -508,7 +508,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List mock tests for a student" do
       tags "Mock Tests"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Mock tests list" do
@@ -526,7 +526,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Mock Tests"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :mock_test, in: :body, required: true, schema: {
         type: :object,
@@ -556,7 +556,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get student LMS progress" do
       tags "LMS Progress"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Progress data" do
@@ -581,7 +581,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List license categories" do
       tags "License Categories"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "License categories with pricing" do
         run_test! do |response|
@@ -599,7 +599,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List users" do
       tags "Users"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Users list" do
         let(:user) { create(:user, :admin) }
@@ -618,7 +618,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Users"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :user_params, in: :body, required: true, schema: {
         type: :object,
         properties: {

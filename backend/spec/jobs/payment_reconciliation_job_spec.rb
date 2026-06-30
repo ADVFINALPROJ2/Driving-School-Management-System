@@ -20,7 +20,7 @@ RSpec.describe PaymentReconciliationJob, type: :job do
       allow(service_double).to receive(:generate_report).and_return({ summary: { discrepancies_found: 0 } })
 
       described_class.perform_now
-      
+
       expect(service_double).to have_received(:reconcile_all)
       expect(service_double).to have_received(:generate_report)
     end
@@ -29,18 +29,18 @@ RSpec.describe PaymentReconciliationJob, type: :job do
       expect(Rails.logger).to receive(:info).with(/PaymentReconciliationJob started/)
       expect(Rails.logger).to receive(:info).with(/Students checked/)
       expect(Rails.logger).to receive(:info).with(/PaymentReconciliationJob completed/)
-      
+
       described_class.perform_now
     end
 
     context 'with specific date' do
       it 'uses provided date' do
         test_date = Date.new(2024, 1, 15)
-        
+
         expect(Finance::PaymentReconciliation).to receive(:new)
           .with(start_date: test_date, end_date: test_date)
           .and_call_original
-        
+
         described_class.perform_now(date: test_date)
       end
     end
@@ -48,7 +48,7 @@ RSpec.describe PaymentReconciliationJob, type: :job do
     context 'error handling' do
       it 're-raises errors for retry mechanism' do
         allow(Finance::PaymentReconciliation).to receive(:new).and_raise(StandardError, 'Test error')
-        
+
         expect {
           described_class.perform_now
         }.to raise_error(StandardError, 'Test error')
@@ -56,10 +56,10 @@ RSpec.describe PaymentReconciliationJob, type: :job do
 
       it 'logs errors' do
         allow(Finance::PaymentReconciliation).to receive(:new).and_raise(StandardError, 'Test error')
-        
+
         expect(Rails.logger).to receive(:error).with(/PaymentReconciliationJob failed/)
         expect(Rails.logger).to receive(:error).with(/Test error/)
-        
+
         begin
           described_class.perform_now
         rescue StandardError

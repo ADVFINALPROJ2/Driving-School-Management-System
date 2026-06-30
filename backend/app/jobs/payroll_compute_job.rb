@@ -16,22 +16,22 @@ class PayrollComputeJob < ApplicationJob
   def perform(month: nil, year: nil)
     target_date = if month && year
                     Date.new(year, month, 1)
-                  else
+    else
                     Date.current.last_month
-                  end
+    end
 
     target_month = target_date.month
     target_year = target_date.year
 
     Rails.logger.info "PayrollComputeJob started at #{Time.current} for #{target_month}/#{target_year}"
-    
+
     results = Finance::PayrollCalculator.calculate_all_for_month(
       month: target_month,
       year: target_year
     )
 
     log_results(results, target_month, target_year)
-    
+
     Rails.logger.info "PayrollComputeJob completed at #{Time.current}"
   rescue StandardError => e
     Rails.logger.error "PayrollComputeJob failed: #{e.class} - #{e.message}"
@@ -46,7 +46,7 @@ class PayrollComputeJob < ApplicationJob
     Rails.logger.info "  - Instructors processed: #{results[:processed]}"
     Rails.logger.info "  - Payroll entries created: #{results[:created]}"
     Rails.logger.info "  - Skipped (duplicates): #{results[:skipped]}"
-    
+
     if results[:errors].any?
       Rails.logger.warn "  - Errors encountered: #{results[:errors].count}"
       results[:errors].each do |error|

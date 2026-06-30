@@ -8,7 +8,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       tags 'Finance - Reports'
       description 'Get comprehensive financial summary including revenue, collections, and outstanding payments'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :start_date, in: :query, type: :string, format: :date, required: false,
                 description: 'Start date (YYYY-MM-DD, defaults to beginning of current month)'
@@ -77,7 +77,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       tags 'Finance - Reports'
       description 'Get detailed revenue analytics by type, tier, and trends'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :start_date, in: :query, type: :string, format: :date, required: false
       parameter name: :end_date, in: :query, type: :string, format: :date, required: false
@@ -145,7 +145,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       tags 'Finance - Reports'
       description 'Get collection performance metrics and outstanding payments analysis'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :start_date, in: :query, type: :string, format: :date, required: false
       parameter name: :end_date, in: :query, type: :string, format: :date, required: false
@@ -198,7 +198,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       tags 'Finance - Reports'
       description 'Compare financial metrics across multiple months'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :months, in: :query, type: :integer, required: false,
                 description: 'Number of months to compare (default: 3)'
@@ -231,7 +231,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       tags 'Finance - Reports'
       description 'Export financial report as CSV file'
       produces 'text/csv'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :start_date, in: :query, type: :string, format: :date, required: false
       parameter name: :end_date, in: :query, type: :string, format: :date, required: false
@@ -250,7 +250,7 @@ RSpec.describe 'api/v1/financial_reports', type: :request do
       description 'Manually trigger payment reconciliation for a date range'
       produces 'application/json'
       consumes 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :reconciliation_params, in: :body, schema: {
         type: :object,

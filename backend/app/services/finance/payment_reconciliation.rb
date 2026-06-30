@@ -58,7 +58,7 @@ module Finance
     def calculate_discrepancy(student)
       expected = calculate_expected_amount(student)
       actual = calculate_actual_paid(student)
-      
+
       {
         student_id: student.id,
         student_name: "#{student.first_name} #{student.last_name}",
@@ -112,8 +112,8 @@ module Finance
     end
 
     def determine_discrepancy_type(actual, expected)
-      return 'matched' if actual == expected
-      actual > expected ? 'overpayment' : 'underpayment'
+      return "matched" if actual == expected
+      actual > expected ? "overpayment" : "underpayment"
     end
 
     def record_overpayment(student, discrepancy)
@@ -125,7 +125,7 @@ module Finance
         amount: discrepancy[:amount],
         expected: discrepancy[:expected_amount],
         actual: discrepancy[:actual_paid],
-        action_required: 'Verify overpayment or issue refund'
+        action_required: "Verify overpayment or issue refund"
       }
 
       Rails.logger.warn "Overpayment detected: Student #{student.student_id} - #{discrepancy[:amount]} ETB"
@@ -140,7 +140,7 @@ module Finance
         amount: discrepancy[:amount],
         expected: discrepancy[:expected_amount],
         actual: discrepancy[:actual_paid],
-        action_required: 'Follow up on outstanding payment'
+        action_required: "Follow up on outstanding payment"
       }
 
       Rails.logger.warn "Underpayment detected: Student #{student.student_id} - #{discrepancy[:amount].abs} ETB owed"
@@ -148,8 +148,8 @@ module Finance
 
     def check_unmatched_invoices(student)
       # Find invoices marked as paid but with no payment reference
-      unmatched = student.invoices.paid.where(payment_reference: [nil, ''])
-      
+      unmatched = student.invoices.paid.where(payment_reference: [ nil, "" ])
+
       unmatched.each do |invoice|
         @results[:unmatched_payments] << {
           invoice_id: invoice.id,
@@ -159,7 +159,7 @@ module Finance
           invoice_type: invoice.milestone_type,
           amount: invoice.amount,
           paid_at: invoice.paid_at,
-          action_required: 'Add payment reference or verify payment'
+          action_required: "Add payment reference or verify payment"
         }
       end
     end

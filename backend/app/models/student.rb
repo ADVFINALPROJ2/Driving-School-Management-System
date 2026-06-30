@@ -90,7 +90,7 @@ class Student < ApplicationRecord
     end
 
     event :start_theory do
-      transitions from: [:approved, :registered], to: :theory_in_progress
+      transitions from: [ :approved, :registered ], to: :theory_in_progress
     end
 
     event :fail_mock_test do

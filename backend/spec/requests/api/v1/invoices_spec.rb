@@ -8,8 +8,8 @@ RSpec.describe 'api/v1/invoices', type: :request do
       tags 'Finance - Invoices'
       description 'Retrieve a list of all invoices with optional filtering'
       produces 'application/json'
-      security [Bearer: []]
-      
+      security [ Bearer: [] ]
+
       parameter name: :status, in: :query, type: :string, required: false,
                 description: 'Filter by status (pending, paid, overdue, cancelled)'
       parameter name: :milestone_type, in: :query, type: :string, required: false,
@@ -68,7 +68,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
       tags 'Finance - Invoices'
       description 'Retrieve details of a specific invoice'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response(200, 'successful') do
         schema type: :object,
@@ -109,7 +109,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
       description 'Mark an invoice as paid with payment details'
       produces 'application/json'
       consumes 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :payment_details, in: :body, schema: {
         type: :object,
@@ -117,7 +117,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
           payment_method: { type: :string, description: 'Payment method (cash, bank_transfer, mobile_money)' },
           payment_reference: { type: :string, description: 'Payment reference number' }
         },
-        required: ['payment_method']
+        required: [ 'payment_method' ]
       }
 
       response(200, 'successful') do
@@ -157,7 +157,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
       tags 'Finance - Invoices'
       description 'Retrieve all invoices for a specific student'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :status, in: :query, type: :string, required: false,
                 description: 'Filter by status'

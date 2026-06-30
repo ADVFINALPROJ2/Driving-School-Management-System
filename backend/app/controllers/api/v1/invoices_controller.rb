@@ -5,7 +5,7 @@ module Api
     # InvoicesController - Manages student invoice operations
     # Endpoints: index, show, mark_paid, student invoices
     class InvoicesController < BaseController
-      before_action :set_invoice, only: [:show, :mark_paid]
+      before_action :set_invoice, only: [ :show, :mark_paid ]
 
       # GET /api/v1/invoices
       # Query params: status (pending/paid/overdue), milestone_type, student_id
@@ -47,13 +47,13 @@ module Api
         if @invoice.paid?
           return render json: {
             success: false,
-            errors: ['Invoice is already paid']
+            errors: [ "Invoice is already paid" ]
           }, status: :unprocessable_entity
         end
 
         @invoice.transaction do
           @invoice.update!(
-            status: 'paid',
+            status: "paid",
             paid_at: Time.current,
             payment_method: params[:payment_method],
             payment_reference: params[:payment_reference]
@@ -66,7 +66,7 @@ module Api
         render json: {
           success: true,
           data: invoice_json(@invoice),
-          message: 'Invoice marked as paid successfully'
+          message: "Invoice marked as paid successfully"
         }, status: :ok
       rescue ActiveRecord::RecordInvalid => e
         render json: {
@@ -95,7 +95,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ['Student not found']
+          errors: [ "Student not found" ]
         }, status: :not_found
       end
 
@@ -106,7 +106,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ['Invoice not found']
+          errors: [ "Invoice not found" ]
         }, status: :not_found
       end
 
@@ -142,7 +142,7 @@ module Api
 
       def update_student_milestone_flags
         student = @invoice.student
-        
+
         case @invoice.milestone_type
         when Invoice::MILESTONE_TYPES[:registration_and_theory]
           student.update!(milestone_1_paid: true)
