@@ -1,115 +1,99 @@
-# Name of your application. Used to uniquely configure containers.
-service: backend
+# Kamal deploy config — Backend API (Rails) on a single self-hosted VPS.
+# Self-contained: images are built ON the VPS and pushed to a local registry
+# running on the same VPS (no external registry account needed). Postgres runs
+# as an accessory on the same box. See DEPLOY.md for the full runbook.
+#
+# Required env on the machine running `bin/kamal` (your laptop):
+#   DEPLOY_SERVER_IP   public IP of the VPS (also used as the remote build host)
+#   APP_HOST           backend API hostname, e.g. api.yourdomain.com
+# Required secrets (see .kamal/secrets): RAILS_MASTER_KEY, BACKEND_DATABASE_PASSWORD
 
-# Name of the container image (use your-user/app-name on external registries).
+service: backend
 image: backend
 
-# Deploy to these servers.
 servers:
   web:
     - <%= ENV.fetch("DEPLOY_SERVER_IP") %>
-  # job:
-  #   hosts:
-  #     - 192.168.0.1
-  #   cmd: bin/jobs
 
-# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
-# If used with Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
-#
-# Using an SSL proxy like this requires turning on config.assume_ssl and config.force_ssl in production.rb!
-#
-# Don't use this when deploying to multiple web servers (then you have to terminate SSL at your load balancer).
-#
+# SSL is auto-provisioned by kamal-proxy via Let's Encrypt for APP_HOST.
+# Requires config.assume_ssl + config.force_ssl in production.rb (both already on).
 proxy:
   ssl: true
   host: <%= ENV.fetch("APP_HOST") %>
 
-# Where you keep your container images.
+# Local registry running on the VPS itself (see the `registry` accessory below).
+# Docker treats localhost registries as insecure-OK, so no TLS/auth is needed.
 registry:
-  # Alternatives: hub.docker.com / registry.digitalocean.com / ghcr.io / ...
-  server: localhost:5555
+  server: localhost:5000
+  username: deploy
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
-  # Needed for authenticated registries.
-  # username: your-user
+# Build the image ON the VPS (remote builder), so the resulting image is pushed
+# to the VPS-local registry without shipping it across the network.
+builder:
+  arch: amd64
+  remote: ssh://root@<%= ENV.fetch("DEPLOY_SERVER_IP") %>
 
-  # Always use an access token rather than real password when possible.
-  # password:
-  #   - KAMAL_REGISTRY_PASSWORD
-
-# Inject ENV variables into containers (secrets come from .kamal/secrets).
+# Env injected into the Rails container.
 env:
   secret:
     - RAILS_MASTER_KEY
+    - BACKEND_DATABASE_PASSWORD
   clear:
-    # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
-    # When you start using multiple servers, you should split out job processing to a dedicated machine.
+    # Reach the Postgres accessory over Kamal's private docker network by name.
+    DB_HOST: backend-db
+    # Host-authorization / mailer host (must match the proxy host).
+    APP_HOST: <%= ENV.fetch("APP_HOST") %>
+    # CORS allow-list — must include the frontend origin, e.g.
+    # https://app.yourdomain.com (comma-separated for multiple).
+    ALLOWED_ORIGINS: <%= ENV.fetch("ALLOWED_ORIGINS", "") %>
+    # Store uploads on the mounted volume instead of S3.
+    ACTIVE_STORAGE_SERVICE: local
+    # Run the Solid Queue worker inside Puma (fine for a single server).
     SOLID_QUEUE_IN_PUMA: true
 
-    # Set number of processes dedicated to Solid Queue (default: 1)
-    # JOB_CONCURRENCY: 3
-
-    # Set number of cores available to the application on each server (default: 1).
-    # WEB_CONCURRENCY: 2
-
-    # Match this to any external database server to configure Active Record correctly
-    # Use backend-db for a db accessory server on same machine via local kamal docker network.
-    # DB_HOST: 192.168.0.2
-
-    # Log everything from Rails
-    # RAILS_LOG_LEVEL: debug
-
-# Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
-# "bin/kamal logs -r job" will tail logs from the first server in the job section.
 aliases:
   console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
+  # One-shot: create + migrate the primary/cache/queue/cable databases.
+  prepare-db: app exec "bin/rails db:prepare"
 
-# Use a persistent storage volume for sqlite database files and local Active Storage files.
-# Recommended to change this to a mounted volume path that is backed up off server.
+# Persistent storage for Active Storage uploads (back this path up off-server).
 volumes:
   - "backend_storage:/rails/storage"
 
+accessories:
+  # Local Docker registry on the VPS — boot this BEFORE the first deploy.
+  # Auth via htpasswd (user "deploy" / KAMAL_REGISTRY_PASSWORD). Generate the
+  # htpasswd file once (see DEPLOY.md); it is git-ignored.
+  registry:
+    image: registry:2
+    host: <%= ENV.fetch("DEPLOY_SERVER_IP") %>
+    port: "127.0.0.1:5000:5000"
+    env:
+      clear:
+        REGISTRY_AUTH: htpasswd
+        REGISTRY_AUTH_HTPASSWD_REALM: Registry
+        REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    files:
+      - .kamal/registry/htpasswd:/auth/htpasswd
+    directories:
+      - data:/var/lib/registry
 
-# Configure the image builder.
-builder:
-  arch: amd64
-
-  # # Build image via remote server (useful for faster amd64 builds on arm64 computers)
-  # remote: ssh://docker@docker-builder-server
-  #
-  # # Pass arguments and secrets to the Docker build process
-  # args:
-  #   RUBY_VERSION: ruby-4.0.1
-  # secrets:
-  #   - GITHUB_TOKEN
-  #   - RAILS_MASTER_KEY
-
-# Use a different ssh user than root
-# ssh:
-#   user: app
-
-# Use accessory services (secrets come from .kamal/secrets).
-# accessories:
-#   db:
-#     image: mysql:8.0
-#     host: 192.168.0.2
-#     # Change to 3306 to expose port to the world instead of just local network.
-#     port: "127.0.0.1:3306:3306"
-#     env:
-#       clear:
-#         MYSQL_ROOT_HOST: '%'
-#       secret:
-#         - MYSQL_ROOT_PASSWORD
-#     files:
-#       - config/mysql/production.cnf:/etc/mysql/my.cnf
-#       - db/production.sql:/docker-entrypoint-initdb.d/setup.sql
-#     directories:
-#       - data:/var/lib/mysql
-#   redis:
-#     image: valkey/valkey:8
-#     host: 192.168.0.2
-#     port: 6379
-#     directories:
-#       - data:/data
+  # PostgreSQL 16 on the VPS. The POSTGRES_USER becomes a superuser, so the app
+  # can create the additional cache/queue/cable databases via db:prepare.
+  db:
+    image: postgres:16-alpine
+    host: <%= ENV.fetch("DEPLOY_SERVER_IP") %>
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_USER: backend
+        POSTGRES_DB: backend_production
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data
