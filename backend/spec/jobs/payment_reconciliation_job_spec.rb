@@ -49,12 +49,15 @@ RSpec.describe PaymentReconciliationJob, type: :job do
     end
 
     context 'error handling' do
-      it 're-raises errors for retry mechanism' do
+      it 'retries via retry_on when reconciliation raises' do
         allow(Finance::PaymentReconciliation).to receive(:new).and_raise(StandardError, 'Test error')
 
+        # retry_on (see PaymentReconciliationJob) intercepts the error and
+        # re-enqueues the job rather than propagating on the first attempt,
+        # so assert a retry was scheduled.
         expect {
           described_class.perform_now
-        }.to raise_error(StandardError, 'Test error')
+        }.to have_enqueued_job(described_class)
       end
 
       it 'logs errors' do
