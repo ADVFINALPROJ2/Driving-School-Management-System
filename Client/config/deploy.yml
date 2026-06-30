@@ -18,8 +18,10 @@ servers:
   web:
     - <%= ENV.fetch("DEPLOY_SERVER_IP") %>
 
+# TLS terminated by the VPS's existing nginx (app.dtmf.studio -> 127.0.0.1:8080),
+# which forwards to the shared kamal-proxy running on the custom HTTP port.
 proxy:
-  ssl: true
+  ssl: false
   host: <%= ENV.fetch("FRONTEND_HOST") %>
   app_port: 3000
 

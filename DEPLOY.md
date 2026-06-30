@@ -1,25 +1,37 @@
-# Deployment runbook — single self-hosted VPS (Kamal)
+# Deployment runbook — dtmf.studio VPS (Kamal, behind existing nginx)
 
-Deploys both apps to **one VPS** (`DEPLOY_SERVER_IP = 2.57.91.91`), fully self-contained:
-a Docker **registry** and **PostgreSQL** both run on the VPS, the backend serves
-`api.<yourdomain>` and the frontend serves `app.<yourdomain>`, each with its own
-Let's Encrypt cert via kamal-proxy.
+Deploys both apps to the VPS at **`2.57.91.91`**, which already runs **nginx** on
+ports 80/443 for another system. So:
 
-> Replace `<yourdomain>` everywhere with your real domain. You run every command
-> below from **your machine** (it drives the VPS over SSH). Secrets are passed as
-> shell env vars — never commit raw values.
+- A Docker **registry** and **PostgreSQL** run as accessories on the VPS.
+- **kamal-proxy** runs HTTP-only on **custom ports** (`8080`/`8443`) — it does NOT
+  touch 80/443.
+- The existing **nginx terminates TLS** for `api.dtmf.studio` (backend) and
+  `app.dtmf.studio` (frontend) and forwards to kamal-proxy on `127.0.0.1:8080`,
+  which routes by hostname to the right app.
+
+```
+            ┌────────── VPS 2.57.91.91 ──────────┐
+internet → nginx :443 (TLS, existing)            │
+            │   api.dtmf.studio ┐                 │
+            │   app.dtmf.studio ┴→ 127.0.0.1:8080 → kamal-proxy → backend / frontend containers
+            │                              postgres + registry (accessories) │
+            └────────────────────────────────────┘
+```
+
+> Run every command from **your machine** (it drives the VPS over SSH), except the
+> nginx vhost edits which you make **on the VPS**. Secrets are shell env vars — never commit raw values.
 
 ---
 
 ## 0. Prerequisites
 
-- A domain you control. Create two DNS **A records**:
-  - `api.<yourdomain>` → `2.57.91.91`
-  - `app.<yourdomain>` → `2.57.91.91`
-- VPS: clean Ubuntu/Debian, **root SSH access via key**. Open firewall ports **22, 80, 443**
-  (port 80 is required for Let's Encrypt; the probe showed it closed and 443 already in use —
-  make sure nothing else is bound to 80/443, e.g. a pre-installed nginx).
-- Local tools: Docker, Ruby, and Kamal — `gem install kamal` (or use `backend/bin/kamal`).
+- DNS **A records** (you confirmed you can add these):
+  - `api.dtmf.studio` → `2.57.91.91`
+  - `app.dtmf.studio` → `2.57.91.91`
+- VPS: root SSH access via key. nginx + certbot already present (for the other system).
+  **You do NOT need to free ports 80/443** — nginx keeps them; kamal-proxy uses 8080/8443.
+- Local tools: Docker, Ruby, Kamal — `gem install kamal` (or use `backend/bin/kamal`).
 
 ## 1. Choose secrets (export in the shell you run kamal from)
 
@@ -30,23 +42,24 @@ export REGISTRY_PASSWORD='<a-strong-registry-password>'
 ```
 `RAILS_MASTER_KEY` is read automatically from `backend/config/master.key`.
 
-## 2. Bootstrap the VPS (installs Docker)
+## 2. Bootstrap Docker + point kamal-proxy at custom ports
 
 ```bash
 cd backend
 kamal server bootstrap
+# Make the shared kamal-proxy listen on 8080/8443 instead of 80/443:
+kamal proxy boot_config set --http-port 8080 --https-port 8443
 ```
 
-## 3. Create the local registry's auth file (once)
+## 3. Local registry auth file (once)
 
 ```bash
 mkdir -p backend/.kamal/registry
 docker run --rm --entrypoint htpasswd httpd:2 -Bbn deploy "$REGISTRY_PASSWORD" \
   > backend/.kamal/registry/htpasswd
 ```
-(Git-ignored. Kamal uploads it to the registry container.)
 
-## 4. Boot the registry + Postgres accessories (before the first deploy)
+## 4. Boot the registry + Postgres accessories
 
 ```bash
 cd backend
@@ -58,52 +71,90 @@ kamal accessory boot db
 
 ```bash
 cd backend
-export APP_HOST=api.<yourdomain>
-export ALLOWED_ORIGINS=https://app.<yourdomain>   # CORS allow-list for the frontend
+export APP_HOST=api.dtmf.studio
+export ALLOWED_ORIGINS=https://app.dtmf.studio
 kamal deploy
+kamal prepare-db                     # create + migrate primary/cache/queue/cable
+kamal app exec "bin/rails db:seed"   # optional demo data + admin/clerk/instructor
 ```
-Then create + migrate the databases (primary/cache/queue/cable) and seed:
-```bash
-kamal prepare-db                     # alias for: bin/rails db:prepare
-kamal app exec "bin/rails db:seed"   # optional: demo data + admin/clerk/instructor
-```
-Verify: `curl https://api.<yourdomain>/up` → `200`.
 
 ## 6. Deploy the frontend
 
 ```bash
 cd Client
 export DEPLOY_SERVER_IP=2.57.91.91
-export FRONTEND_HOST=app.<yourdomain>
-export API_URL=https://api.<yourdomain>     # baked into the client bundle at build
+export FRONTEND_HOST=app.dtmf.studio
+export API_URL=https://api.dtmf.studio   # baked into the client bundle at build
 export REGISTRY_PASSWORD='<same-as-step-1>'
 kamal deploy
 ```
-Visit `https://app.<yourdomain>` and log in (`admin@drivingschool.et` / `Password123!`
-if you seeded).
+
+## 7. Add nginx vhosts on the VPS (then certbot for TLS)
+
+On the VPS, create `/etc/nginx/sites-available/dtmf-apps.conf`:
+
+```nginx
+# Backend API
+server {
+    server_name api.dtmf.studio;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;   # Rails assume_ssl/force_ssl
+        proxy_http_version 1.1;
+    }
+    listen 80;   # certbot will add the 443 + cert lines
+}
+
+# Frontend
+server {
+    server_name app.dtmf.studio;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_http_version 1.1;
+    }
+    listen 80;
+}
+```
+
+```bash
+ln -s /etc/nginx/sites-available/dtmf-apps.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d api.dtmf.studio -d app.dtmf.studio
+```
+
+> Both vhosts forward to the same `127.0.0.1:8080`; kamal-proxy routes by the
+> `Host` header to the backend vs frontend container. Optionally firewall 8080/8443
+> from the public internet (only nginx, on localhost, needs them).
+
+## 8. Verify
+
+```bash
+curl https://api.dtmf.studio/up        # => 200
+# open https://app.dtmf.studio  and log in (admin@drivingschool.et / Password123!)
+```
 
 ---
 
 ## Day-2 operations
 
 ```bash
-cd backend && kamal logs           # backend logs
-cd backend && kamal console        # rails console
+cd backend && kamal logs | kamal console | kamal rollback
 cd backend && kamal app exec "bin/rails db:migrate"   # after new migrations
-cd Client  && kamal logs           # frontend logs
-cd backend && kamal rollback       # roll back to the previous release
+cd Client  && kamal logs
 ```
 
 ## Notes / follow-ups
-
-- **Security:** `config/master.key` is currently committed to the repo. Rotate it
-  and remove it from git history; afterwards set `RAILS_MASTER_KEY` from your
-  password manager instead of reading the file.
-- **Backups:** the `backend/bin/post-deploy` hook can `pg_dump` to S3 when
-  `BACKUP_S3_BUCKET` is set; otherwise back up the Postgres `data` volume yourself.
-- **Email:** SMTP is unset, so mailer sends are best-effort (non-fatal). Add SMTP
-  creds via `bin/rails credentials:edit` when you want real email.
-- **Simpler registry alternative:** if the on-VPS registry is fiddly, switch both
-  `registry:` blocks to GitHub Container Registry (`ghcr.io`, `username: <gh-user>`,
-  `KAMAL_REGISTRY_PASSWORD` = a GitHub PAT with `write:packages`) and drop the
-  `registry` accessory + htpasswd step.
+- **Security:** `config/master.key` is committed (pre-existing). Rotate it and
+  remove from git history, then source `RAILS_MASTER_KEY` from a password manager.
+- **Backups:** back up the Postgres `data` volume (or set `BACKUP_S3_BUCKET` for the
+  `bin/post-deploy` pg_dump hook).
+- **Email:** SMTP is unset (mailer sends are best-effort/non-fatal) until you add
+  creds via `bin/rails credentials:edit`.
+- **Simpler registry alternative:** swap both `registry:` blocks to ghcr.io
+  (`username: <gh-user>`, `KAMAL_REGISTRY_PASSWORD` = GitHub PAT) and drop the
+  registry accessory + htpasswd step.

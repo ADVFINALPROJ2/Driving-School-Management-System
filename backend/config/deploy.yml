@@ -15,10 +15,13 @@ servers:
   web:
     - <%= ENV.fetch("DEPLOY_SERVER_IP") %>
 
-# SSL is auto-provisioned by kamal-proxy via Let's Encrypt for APP_HOST.
-# Requires config.assume_ssl + config.force_ssl in production.rb (both already on).
+# TLS is terminated by the VPS's existing nginx; kamal-proxy runs HTTP-only on
+# custom ports (set once: `kamal proxy boot_config set --http-port 8080 --https-port 8443`)
+# and nginx forwards api.dtmf.studio -> 127.0.0.1:8080 with the Host header preserved.
+# kamal-proxy still routes by host, so production.rb's assume_ssl/force_ssl stay on
+# (nginx must send X-Forwarded-Proto: https). See DEPLOY.md.
 proxy:
-  ssl: true
+  ssl: false
   host: <%= ENV.fetch("APP_HOST") %>
 
 # Local registry running on the VPS itself (see the `registry` accessory below).
