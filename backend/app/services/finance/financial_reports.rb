@@ -32,7 +32,7 @@ module Finance
       paid_invoices = invoices_in_period.paid
 
       {
-        total_revenue: paid_invoices.sum(:amount),
+        total_revenue: paid_invoices.sum(:amount).to_f,
         invoice_count: paid_invoices.count,
         average_invoice: calculate_average(paid_invoices),
         student_count: paid_invoices.select(:student_id).distinct.count
@@ -44,11 +44,11 @@ module Finance
       all_invoices = invoices_in_period
 
       {
-        total_issued: all_invoices.sum(:amount),
-        total_collected: all_invoices.paid.sum(:amount),
+        total_issued: all_invoices.sum(:amount).to_f,
+        total_collected: all_invoices.paid.sum(:amount).to_f,
         collection_rate: calculate_collection_rate(all_invoices),
-        pending_amount: all_invoices.pending.sum(:amount),
-        overdue_amount: all_invoices.overdue.sum(:amount)
+        pending_amount: all_invoices.pending.sum(:amount).to_f,
+        overdue_amount: all_invoices.overdue.sum(:amount).to_f
       }
     end
 
@@ -57,7 +57,7 @@ module Finance
       outstanding = Invoice.where(status: [ "pending", "overdue" ])
 
       {
-        total_outstanding: outstanding.sum(:amount),
+        total_outstanding: outstanding.sum(:amount).to_f,
         pending_count: outstanding.pending.count,
         overdue_count: outstanding.overdue.count,
         aging: calculate_aging(outstanding),
@@ -115,8 +115,8 @@ module Finance
 
         {
           month: month_start.strftime("%B %Y"),
-          total_issued: month_invoices.sum(:amount),
-          total_collected: month_invoices.paid.sum(:amount),
+          total_issued: month_invoices.sum(:amount).to_f,
+          total_collected: month_invoices.paid.sum(:amount).to_f,
           collection_rate: calculate_collection_rate(month_invoices)
         }
       end.reverse

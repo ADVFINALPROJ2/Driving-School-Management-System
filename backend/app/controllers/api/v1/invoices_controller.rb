@@ -87,8 +87,8 @@ module Api
           success: true,
           data: invoices.map { |invoice| invoice_json(invoice) },
           meta: {
-            total_pending: student.invoices.pending.sum(:amount),
-            total_paid: student.invoices.paid.sum(:amount),
+            total_pending: student.invoices.pending.sum(:amount).to_f,
+            total_paid: student.invoices.paid.sum(:amount).to_f,
             overdue_count: student.invoices.overdue.count
           }
         }, status: :ok
@@ -117,7 +117,7 @@ module Api
           student_id: invoice.student_id,
           student_name: invoice.student ? "#{invoice.student.first_name} #{invoice.student.last_name}" : nil,
           milestone_type: invoice.milestone_type,
-          amount: invoice.amount,
+          amount: invoice.amount.to_f,
           status: invoice.status,
           due_date: invoice.due_date,
           paid_at: invoice.paid_at,
