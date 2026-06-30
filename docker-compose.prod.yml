@@ -1,0 +1,71 @@
+# Production stack for a single clean VPS (Docker-based), fronted by nginx + certbot.
+# Postgres + backend (Rails/Thruster) + frontend (Next.js) all run as containers
+# with restart: always (this is what keeps them up — the Docker equivalent of PM2).
+#
+# Bring up:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# DB setup:  docker compose -f docker-compose.prod.yml exec backend bin/rails db:prepare
+# See DEPLOY.md for the full runbook.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: backend
+      POSTGRES_PASSWORD: ${BACKEND_DATABASE_PASSWORD:?set BACKEND_DATABASE_PASSWORD in .env.prod}
+      POSTGRES_DB: backend_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backend"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [driving]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      RAILS_ENV: production
+      # master.key is excluded from the image, so the key is supplied here.
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?set RAILS_MASTER_KEY in .env.prod (cat backend/config/master.key)}
+      DB_HOST: postgres
+      DATABASE_USERNAME: backend
+      BACKEND_DATABASE_PASSWORD: ${BACKEND_DATABASE_PASSWORD:?}
+      APP_HOST: ${APP_HOST:-api.dtmf.studio}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://app.dtmf.studio}
+      ACTIVE_STORAGE_SERVICE: local
+      SOLID_QUEUE_IN_PUMA: "true"
+    ports:
+      - "127.0.0.1:3001:80"   # nginx proxies api.dtmf.studio -> here
+    volumes:
+      - backend_storage:/rails/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [driving]
+
+  frontend:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile
+      args:
+        # PUBLIC value, inlined into the JS bundle at build time.
+        NEXT_PUBLIC_API_URL: ${API_URL:-https://api.dtmf.studio}
+    restart: always
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"   # nginx proxies app.dtmf.studio -> here
+    networks: [driving]
+
+volumes:
+  postgres_data:
+  backend_storage:
+
+networks:
+  driving:
+    driver: bridge

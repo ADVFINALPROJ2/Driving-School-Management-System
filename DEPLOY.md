@@ -1,117 +1,88 @@
-# Deployment runbook — dtmf.studio VPS (Kamal, behind existing nginx)
+# Deployment runbook — dtmf.studio on a clean VPS (Docker Compose + nginx)
 
-Deploys both apps to the VPS at **`2.57.91.91`**, which already runs **nginx** on
-ports 80/443 for another system. So:
+Deploys to a **clean VPS at `72.60.81.161`** using Docker Compose, fronted by nginx +
+certbot. Containers run with `restart: always` (the Docker equivalent of PM2 — they
+come back on crash/reboot).
 
-- A Docker **registry** and **PostgreSQL** run as accessories on the VPS.
-- **kamal-proxy** runs HTTP-only on **custom ports** (`8080`/`8443`) — it does NOT
-  touch 80/443.
-- The existing **nginx terminates TLS** for `api.dtmf.studio` (backend) and
-  `app.dtmf.studio` (frontend) and forwards to kamal-proxy on `127.0.0.1:8080`,
-  which routes by hostname to the right app.
+- Postgres + backend (Rails) + frontend (Next.js) run as containers, bound to
+  **localhost** ports (`127.0.0.1:3001` backend, `127.0.0.1:3000` frontend).
+- **nginx** terminates TLS for `api.dtmf.studio` → `:3001` and `app.dtmf.studio` → `:3000`.
 
 ```
-            ┌────────── VPS 2.57.91.91 ──────────┐
-internet → nginx :443 (TLS, existing)            │
-            │   api.dtmf.studio ┐                 │
-            │   app.dtmf.studio ┴→ 127.0.0.1:8080 → kamal-proxy → backend / frontend containers
-            │                              postgres + registry (accessories) │
-            └────────────────────────────────────┘
+internet → nginx :443 (certbot TLS)
+             api.dtmf.studio → 127.0.0.1:3001 → backend container (Rails/Thruster)
+             app.dtmf.studio → 127.0.0.1:3000 → frontend container (Next.js)
+                                                 postgres container (internal only)
 ```
 
-> Run every command from **your machine** (it drives the VPS over SSH), except the
-> nginx vhost edits which you make **on the VPS**. Secrets are shell env vars — never commit raw values.
+> I cannot SSH in or enter your password — run these **on the VPS** over your own SSH
+> session, and paste me any errors. Don't commit `.env.prod`.
 
 ---
 
-## 0. Prerequisites
+## 0. DNS (do this first — propagation takes time)
+Point both A records at the VPS:
+- `api.dtmf.studio` → `72.60.81.161`
+- `app.dtmf.studio` → `72.60.81.161`
 
-- DNS **A records** (you confirmed you can add these):
-  - `api.dtmf.studio` → `2.57.91.91`
-  - `app.dtmf.studio` → `2.57.91.91`
-- VPS: root SSH access via key. nginx + certbot already present (for the other system).
-  **You do NOT need to free ports 80/443** — nginx keeps them; kamal-proxy uses 8080/8443.
-- Local tools: Docker, Ruby, Kamal — `gem install kamal` (or use `backend/bin/kamal`).
-
-## 1. Choose secrets (export in the shell you run kamal from)
-
+## 1. Install Docker, nginx, certbot on the VPS
 ```bash
-export DEPLOY_SERVER_IP=2.57.91.91
-export DB_PASSWORD='<a-strong-db-password>'
-export REGISTRY_PASSWORD='<a-strong-registry-password>'
-```
-`RAILS_MASTER_KEY` is read automatically from `backend/config/master.key`.
-
-## 2. Bootstrap Docker + point kamal-proxy at custom ports
-
-```bash
-cd backend
-kamal server bootstrap
-# Make the shared kamal-proxy listen on 8080/8443 instead of 80/443:
-kamal proxy boot_config set --http-port 8080 --https-port 8443
+# Docker engine + compose plugin
+curl -fsSL https://get.docker.com | sh
+# nginx + certbot
+apt-get update && apt-get install -y nginx certbot python3-certbot-nginx git
 ```
 
-## 3. Local registry auth file (once)
-
+## 2. Clone the repo into ~/driving
 ```bash
-mkdir -p backend/.kamal/registry
-docker run --rm --entrypoint htpasswd httpd:2 -Bbn deploy "$REGISTRY_PASSWORD" \
-  > backend/.kamal/registry/htpasswd
+cd ~
+git clone https://github.com/ADVFINALPROJ2/Driving-School-Management-System.git driving
+cd driving
+git checkout oliyad-vps-deploy   # until #84 is merged to main
 ```
 
-## 4. Boot the registry + Postgres accessories
-
+## 3. Create .env.prod
 ```bash
-cd backend
-kamal accessory boot registry
-kamal accessory boot db
+cp .env.prod.example .env.prod
+nano .env.prod    # set RAILS_MASTER_KEY (= contents of backend/config/master.key)
+                  # and BACKEND_DATABASE_PASSWORD (choose a strong one)
+```
+Get the master key value:
+```bash
+cat backend/config/master.key
 ```
 
-## 5. Deploy the backend
-
+## 4. Build + start the stack
 ```bash
-cd backend
-export APP_HOST=api.dtmf.studio
-export ALLOWED_ORIGINS=https://app.dtmf.studio
-kamal deploy
-kamal prepare-db                     # create + migrate primary/cache/queue/cable
-kamal app exec "bin/rails db:seed"   # optional demo data + admin/clerk/instructor
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
-## 6. Deploy the frontend
-
+## 5. Create + migrate the databases (and optional demo data)
 ```bash
-cd Client
-export DEPLOY_SERVER_IP=2.57.91.91
-export FRONTEND_HOST=app.dtmf.studio
-export API_URL=https://api.dtmf.studio   # baked into the client bundle at build
-export REGISTRY_PASSWORD='<same-as-step-1>'
-kamal deploy
+docker compose -f docker-compose.prod.yml exec backend bin/rails db:prepare
+docker compose -f docker-compose.prod.yml exec backend bin/rails db:seed   # optional
 ```
+Quick check (inside the VPS): `curl http://127.0.0.1:3001/up` → `200`.
 
-## 7. Add nginx vhosts on the VPS (then certbot for TLS)
-
-On the VPS, create `/etc/nginx/sites-available/dtmf-apps.conf`:
-
+## 6. nginx vhosts + TLS
+Create `/etc/nginx/sites-available/dtmf.conf`:
 ```nginx
-# Backend API
 server {
     server_name api.dtmf.studio;
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;   # Rails assume_ssl/force_ssl
         proxy_http_version 1.1;
+        client_max_body_size 25m;                    # file uploads
     }
-    listen 80;   # certbot will add the 443 + cert lines
+    listen 80;
 }
-
-# Frontend
 server {
     server_name app.dtmf.studio;
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
@@ -120,41 +91,39 @@ server {
     listen 80;
 }
 ```
-
 ```bash
-ln -s /etc/nginx/sites-available/dtmf-apps.conf /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/dtmf.conf /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
-certbot --nginx -d api.dtmf.studio -d app.dtmf.studio
+certbot --nginx -d api.dtmf.studio -d app.dtmf.studio    # provisions + wires TLS
 ```
 
-> Both vhosts forward to the same `127.0.0.1:8080`; kamal-proxy routes by the
-> `Host` header to the backend vs frontend container. Optionally firewall 8080/8443
-> from the public internet (only nginx, on localhost, needs them).
-
-## 8. Verify
-
+## 7. Verify
 ```bash
 curl https://api.dtmf.studio/up        # => 200
-# open https://app.dtmf.studio  and log in (admin@drivingschool.et / Password123!)
+# open https://app.dtmf.studio  → log in (admin@drivingschool.et / Password123! if seeded)
 ```
 
 ---
 
-## Day-2 operations
-
+## Updating later
 ```bash
-cd backend && kamal logs | kamal console | kamal rollback
-cd backend && kamal app exec "bin/rails db:migrate"   # after new migrations
-cd Client  && kamal logs
+cd ~/driving && git pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml exec backend bin/rails db:migrate   # if new migrations
+```
+
+## Day-2
+```bash
+docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f frontend
+docker compose -f docker-compose.prod.yml restart backend
+docker compose -f docker-compose.prod.yml exec backend bin/rails console
 ```
 
 ## Notes / follow-ups
-- **Security:** `config/master.key` is committed (pre-existing). Rotate it and
-  remove from git history, then source `RAILS_MASTER_KEY` from a password manager.
-- **Backups:** back up the Postgres `data` volume (or set `BACKUP_S3_BUCKET` for the
-  `bin/post-deploy` pg_dump hook).
-- **Email:** SMTP is unset (mailer sends are best-effort/non-fatal) until you add
-  creds via `bin/rails credentials:edit`.
-- **Simpler registry alternative:** swap both `registry:` blocks to ghcr.io
-  (`username: <gh-user>`, `KAMAL_REGISTRY_PASSWORD` = GitHub PAT) and drop the
-  registry accessory + htpasswd step.
+- **Security:** the root SSH password was shared in chat — change it and prefer SSH keys.
+  Also `config/master.key` is committed (pre-existing) — rotate it and remove from git history.
+- **Backups:** back up the `postgres_data` and `backend_storage` Docker volumes.
+- **Email:** SMTP is unset (mailer is best-effort) until you add creds via `bin/rails credentials:edit`.
+- **Kamal alternative:** `backend/config/deploy.yml` + `Client/config/deploy.yml` provide a
+  Kamal-based deploy instead, if you ever want zero-downtime releases / rollbacks.
