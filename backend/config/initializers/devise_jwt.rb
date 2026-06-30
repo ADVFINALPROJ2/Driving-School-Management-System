@@ -7,8 +7,10 @@
 Devise.setup do |config|
   config.jwt do |jwt|
     # Falls back to secret_key_base so the app boots in dev/test without extra
-    # setup; set DEVISE_JWT_SECRET_KEY explicitly in production.
-    jwt.secret = ENV.fetch("DEVISE_JWT_SECRET_KEY") { Rails.application.secret_key_base }
+    # setup; set DEVISE_JWT_SECRET_KEY explicitly in production. `.presence`
+    # guards against the var being passed as an empty string (e.g. docker-compose
+    # `${DEVISE_JWT_SECRET_KEY:-}`), which would otherwise yield an empty HMAC key.
+    jwt.secret = ENV["DEVISE_JWT_SECRET_KEY"].presence || Rails.application.secret_key_base
 
     # Routes that mint a token (the token is also returned in the JSON body).
     jwt.dispatch_requests = [
