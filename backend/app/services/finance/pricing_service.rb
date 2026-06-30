@@ -28,19 +28,19 @@ module Finance
     private
 
     def validate_student
-      @errors << 'Student is required' if @student.nil?
-      @errors << 'Course is required' if @student&.course.nil?
-      @errors << 'Pricing tier is required' if @student&.pricing_tier.blank?
+      @errors << "Student is required" if @student.nil?
+      @errors << "Course is required" if @student&.course.nil?
+      @errors << "Pricing tier is required" if @student&.pricing_tier.blank?
     end
 
     def determine_total_fee
       course = @student.course
-      
+
       @total_fee = if @student.is_upgrade?
                      course.upgrade_fee(@student.pricing_tier)
-                   else
+      else
                      course.fee_for_tier(@student.pricing_tier)
-                   end
+      end
 
       # Update student record
       @student.update!(total_fee: @total_fee)
@@ -59,7 +59,7 @@ module Finance
         amount: @milestone_1,
         description: "#{@student.is_upgrade? ? 'Upgrade' : 'Registration'} + Milestone 1 (50%)",
         due_date: Date.today + 7.days,
-        status: 'pending'
+        status: "pending"
       )
     end
 
@@ -69,7 +69,7 @@ module Finance
         total_fee: @total_fee,
         milestone_1: @milestone_1,
         milestone_2: @milestone_2,
-        message: 'Pricing calculated successfully'
+        message: "Pricing calculated successfully"
       }
     end
 
@@ -77,7 +77,7 @@ module Finance
       {
         success: false,
         errors: @errors,
-        message: 'Failed to calculate pricing'
+        message: "Failed to calculate pricing"
       }
     end
   end

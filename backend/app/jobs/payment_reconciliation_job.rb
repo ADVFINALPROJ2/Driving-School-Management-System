@@ -13,20 +13,20 @@ class PaymentReconciliationJob < ApplicationJob
 
   def perform(date: Date.current)
     Rails.logger.info "PaymentReconciliationJob started for #{date}"
-    
+
     reconciliation = Finance::PaymentReconciliation.new(
       start_date: date,
       end_date: date
     )
-    
+
     results = reconciliation.reconcile_all
     report = reconciliation.generate_report
 
     log_results(report)
     notify_if_discrepancies(report)
-    
+
     Rails.logger.info "PaymentReconciliationJob completed for #{date}"
-    
+
     results
   rescue StandardError => e
     Rails.logger.error "PaymentReconciliationJob failed: #{e.class} - #{e.message}"
@@ -51,7 +51,7 @@ class PaymentReconciliationJob < ApplicationJob
 
     # TODO: Send email notification to finance admin
     # FinanceMailer.reconciliation_alert(report).deliver_later
-    
+
     Rails.logger.warn "⚠️  Payment discrepancies detected! Finance admin should review."
   end
 end

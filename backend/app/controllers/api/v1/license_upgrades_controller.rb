@@ -3,7 +3,7 @@
 module Api
   module V1
     class LicenseUpgradesController < BaseController
-      before_action :set_license_upgrade, only: [:show, :approve, :reject]
+      before_action :set_license_upgrade, only: [ :show, :approve, :reject ]
 
       def index
         authorize LicenseUpgrade
@@ -90,7 +90,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ["License upgrade not found"]
+          errors: [ "License upgrade not found" ]
         }, status: :not_found
       end
 

@@ -13,11 +13,11 @@ class AttendanceBreachScanJob < ApplicationJob
 
   def perform
     Rails.logger.info "AttendanceBreachScanJob started at #{Time.current}"
-    
+
     results = Finance::PenaltyEngine.scan_all_for_attendance_breaches
 
     log_results(results)
-    
+
     Rails.logger.info "AttendanceBreachScanJob completed at #{Time.current}"
   rescue StandardError => e
     Rails.logger.error "AttendanceBreachScanJob failed: #{e.class} - #{e.message}"
@@ -31,7 +31,7 @@ class AttendanceBreachScanJob < ApplicationJob
     Rails.logger.info "Attendance Breach Scan Results:"
     Rails.logger.info "  - Students scanned: #{results[:scanned]}"
     Rails.logger.info "  - Penalties created: #{results[:penalties_created]}"
-    
+
     if results[:errors].any?
       Rails.logger.warn "  - Errors encountered: #{results[:errors].count}"
       results[:errors].each do |error|

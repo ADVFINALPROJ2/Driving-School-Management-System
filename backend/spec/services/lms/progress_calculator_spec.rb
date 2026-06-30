@@ -40,17 +40,16 @@ RSpec.describe Lms::ProgressCalculator, type: :service do
 
   describe "next_milestone" do
     it "returns the correct message for each status" do
-      student.update!(status: "registered")
-      expect(result[:next_milestone]).to include("theory attendance")
+      # `result` is memoized, so recompute after each status change.
+      next_milestone_for = ->(status) do
+        student.update!(status: status)
+        described_class.new(student).call[:next_milestone]
+      end
 
-      student.update!(status: "theory_in_progress")
-      expect(result[:next_milestone]).to include("35 theory days")
-
-      student.update!(status: "practical_in_progress")
-      expect(result[:next_milestone]).to include("52 practical days")
-
-      student.update!(status: "exam_eligible")
-      expect(result[:next_milestone]).to include("ERTA exam")
+      expect(next_milestone_for.call("registered")).to include("theory attendance")
+      expect(next_milestone_for.call("theory_in_progress")).to include("35 theory days")
+      expect(next_milestone_for.call("practical_in_progress")).to include("52 practical days")
+      expect(next_milestone_for.call("exam_eligible")).to include("ERTA exam")
     end
   end
 end

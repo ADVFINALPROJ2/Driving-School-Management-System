@@ -19,6 +19,11 @@ RSpec.describe Meklit::BatchingService, type: :service do
         allow(MeklitBatchExportJob).to receive(:set).and_return(
           instance_double(ActiveJob::ConfiguredJob, perform_later: true)
         )
+        # Validation is covered by QualificationValidator specs; isolate the
+        # orchestration here so document/training setup doesn't block these.
+        allow(Meklit::QualificationValidator).to receive(:new).and_return(
+          instance_double(Meklit::QualificationValidator, call: true)
+        )
       end
 
       it 'validates all students' do
@@ -103,6 +108,9 @@ RSpec.describe Meklit::BatchingService, type: :service do
       before do
         allow(Meklit::MeklitApiClient).to receive(:new).and_return(
           instance_double(Meklit::MeklitApiClient, submit_batch: { success: false, error: 'API error' })
+        )
+        allow(Meklit::QualificationValidator).to receive(:new).and_return(
+          instance_double(Meklit::QualificationValidator, call: true)
         )
       end
 

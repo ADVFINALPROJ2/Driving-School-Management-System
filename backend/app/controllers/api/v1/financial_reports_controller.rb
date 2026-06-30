@@ -76,8 +76,8 @@ module Api
 
         send_data csv_data,
           filename: "financial_report_#{start_date}_to_#{end_date}.csv",
-          type: 'text/csv',
-          disposition: 'attachment'
+          type: "text/csv",
+          disposition: "attachment"
       end
 
       # POST /api/v1/financial_reports/reconcile
@@ -97,12 +97,12 @@ module Api
         render json: {
           success: true,
           data: report,
-          message: 'Payment reconciliation completed'
+          message: "Payment reconciliation completed"
         }, status: :ok
       rescue StandardError => e
         render json: {
           success: false,
-          errors: [e.message]
+          errors: [ e.message ]
         }, status: :unprocessable_entity
       end
 
@@ -110,7 +110,7 @@ module Api
 
       def parse_date(date_string, default)
         return default if date_string.blank?
-        
+
         Date.parse(date_string)
       rescue ArgumentError
         default

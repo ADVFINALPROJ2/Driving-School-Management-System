@@ -318,7 +318,7 @@ npm install
 npm run dev                 # Starts on http://localhost:3000
 ```
 
-The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:3001` — when using Docker Compose the backend is at `http://localhost:8080`, so set:
+The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:8080`, which matches the Docker Compose backend. Override it only if your backend runs on a different host/port:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
@@ -357,7 +357,7 @@ All backend configuration is read from environment variables. Copy `backend/.env
 
 | Variable                     | Default                        | Required | Description |
 |------------------------------|--------------------------------|----------|-------------|
-| `NEXT_PUBLIC_API_URL`        | `http://localhost:3001`        | No       | Backend API base URL |
+| `NEXT_PUBLIC_API_URL`        | `http://localhost:8080`        | No       | Backend API base URL |
 | `NEXT_PUBLIC_DEFAULT_BATCH_ID` | `1`                          | No       | Default batch ID for new enrollments |
 
 **Code-only variables** (not in `.env.example`, set in production):
@@ -479,7 +479,7 @@ An OpenAPI/Swagger 2.0 specification is available at `/api-docs` when the backen
 
 ```bash
 # After starting the server, open in your browser:
-open http://localhost:3001/api-docs
+open http://localhost:8080/api-docs
 ```
 
 To regenerate `swagger.json` from the annotated specs:

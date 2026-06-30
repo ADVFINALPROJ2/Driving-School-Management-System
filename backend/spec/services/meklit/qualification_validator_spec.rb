@@ -15,6 +15,12 @@ RSpec.describe Meklit::QualificationValidator, type: :service do
           practical_days_completed: 52,
           mock_test_score: 80
         )
+        # All ERTA-required documents must be attached to qualify.
+        %i[profile_photo yellow_card grade_8 grade_10 grade_12].each do |doc|
+          student.public_send(doc).attach(
+            io: StringIO.new('test'), filename: "#{doc}.png", content_type: 'image/png'
+          )
+        end
         validator = described_class.new(student)
         expect(validator.call).to be true
         expect(validator.errors).to be_empty

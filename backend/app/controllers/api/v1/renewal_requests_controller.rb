@@ -3,7 +3,7 @@
 module Api
   module V1
     class RenewalRequestsController < BaseController
-      before_action :set_renewal_request, only: [:show, :submit, :complete, :reject]
+      before_action :set_renewal_request, only: [ :show, :submit, :complete, :reject ]
 
       def index
         authorize RenewalRequest
@@ -106,7 +106,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ["Renewal request not found"]
+          errors: [ "Renewal request not found" ]
         }, status: :not_found
       end
 

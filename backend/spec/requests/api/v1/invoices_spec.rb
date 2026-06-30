@@ -3,13 +3,18 @@
 require 'swagger_helper'
 
 RSpec.describe 'api/v1/invoices', type: :request do
-  path '/api/v1/invoices' do
+  # Authenticate as admin so rswag's Bearer security parameter resolves; the
+  # 401 cases override Authorization to nil.
+  let(:user) { create(:user, :admin) }
+  let(:Authorization) { "Bearer #{Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first}" }
+
+  path '/invoices' do
     get('list invoices') do
       tags 'Finance - Invoices'
       description 'Retrieve a list of all invoices with optional filtering'
       produces 'application/json'
-      security [Bearer: []]
-      
+      security [ Bearer: [] ]
+
       parameter name: :status, in: :query, type: :string, required: false,
                 description: 'Filter by status (pending, paid, overdue, cancelled)'
       parameter name: :milestone_type, in: :query, type: :string, required: false,
@@ -30,8 +35,8 @@ RSpec.describe 'api/v1/invoices', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :string },
-                  student_id: { type: :string },
+                  id: { type: :integer },
+                  student_id: { type: :integer },
                   student_name: { type: :string },
                   milestone_type: { type: :string },
                   amount: { type: :number },
@@ -56,29 +61,31 @@ RSpec.describe 'api/v1/invoices', type: :request do
       end
 
       response(401, 'unauthorized') do
+        let(:Authorization) { nil }
         run_test!
       end
     end
   end
 
-  path '/api/v1/invoices/{id}' do
+  path '/invoices/{id}' do
     parameter name: 'id', in: :path, type: :string, description: 'Invoice ID (UUID)'
 
     get('show invoice') do
       tags 'Finance - Invoices'
       description 'Retrieve details of a specific invoice'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response(200, 'successful') do
+        let(:id) { create(:invoice).id }
         schema type: :object,
           properties: {
             success: { type: :boolean },
             data: {
               type: :object,
               properties: {
-                id: { type: :string },
-                student_id: { type: :string },
+                id: { type: :integer },
+                student_id: { type: :integer },
                 student_name: { type: :string },
                 milestone_type: { type: :string },
                 amount: { type: :number },
@@ -96,12 +103,13 @@ RSpec.describe 'api/v1/invoices', type: :request do
       end
 
       response(404, 'not found') do
+        let(:id) { 999_999 }
         run_test!
       end
     end
   end
 
-  path '/api/v1/invoices/{id}/mark_paid' do
+  path '/invoices/{id}/mark_paid' do
     parameter name: 'id', in: :path, type: :string, description: 'Invoice ID (UUID)'
 
     post('mark invoice as paid') do
@@ -109,7 +117,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
       description 'Mark an invoice as paid with payment details'
       produces 'application/json'
       consumes 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :payment_details, in: :body, schema: {
         type: :object,
@@ -117,17 +125,19 @@ RSpec.describe 'api/v1/invoices', type: :request do
           payment_method: { type: :string, description: 'Payment method (cash, bank_transfer, mobile_money)' },
           payment_reference: { type: :string, description: 'Payment reference number' }
         },
-        required: ['payment_method']
+        required: [ 'payment_method' ]
       }
 
       response(200, 'successful') do
+        let(:id) { create(:invoice).id }
+        let(:payment_details) { { payment_method: 'cash', payment_reference: 'REF-001' } }
         schema type: :object,
           properties: {
             success: { type: :boolean },
             data: {
               type: :object,
               properties: {
-                id: { type: :string },
+                id: { type: :integer },
                 status: { type: :string },
                 paid_at: { type: :string, format: :datetime },
                 payment_method: { type: :string },
@@ -141,28 +151,33 @@ RSpec.describe 'api/v1/invoices', type: :request do
       end
 
       response(422, 'already paid or invalid') do
+        let(:id) { create(:invoice, status: 'paid', paid_at: Time.current).id }
+        let(:payment_details) { { payment_method: 'cash' } }
         run_test!
       end
 
       response(404, 'not found') do
+        let(:id) { 999_999 }
+        let(:payment_details) { { payment_method: 'cash' } }
         run_test!
       end
     end
   end
 
-  path '/api/v1/students/{student_id}/invoices' do
+  path '/students/{student_id}/invoices' do
     parameter name: 'student_id', in: :path, type: :string, description: 'Student ID (UUID)'
 
     get('get student invoices') do
       tags 'Finance - Invoices'
       description 'Retrieve all invoices for a specific student'
       produces 'application/json'
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       parameter name: :status, in: :query, type: :string, required: false,
                 description: 'Filter by status'
 
       response(200, 'successful') do
+        let(:student_id) { create(:student).id }
         schema type: :object,
           properties: {
             success: { type: :boolean },
@@ -171,7 +186,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :string },
+                  id: { type: :integer },
                   milestone_type: { type: :string },
                   amount: { type: :number },
                   status: { type: :string },
@@ -193,6 +208,7 @@ RSpec.describe 'api/v1/invoices', type: :request do
       end
 
       response(404, 'student not found') do
+        let(:student_id) { 999_999 }
         run_test!
       end
     end

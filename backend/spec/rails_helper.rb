@@ -77,6 +77,9 @@ RSpec.configure do |config|
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
   include FactoryBot::Syntax::Methods
+
+  # Time travel helpers (freeze_time / travel_to) used by invoice and payroll specs.
+  config.include ActiveSupport::Testing::TimeHelpers
 end
 
 # shoulda-matchers (used by model specs for belong_to / validate_* matchers)

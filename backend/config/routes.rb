@@ -28,8 +28,8 @@ Rails.application.routes.draw do
       resources :course_categories, only: [ :index ]
       resources :students, only: [ :index, :show, :create, :update ] do
         # Student-specific invoices (Finance Module)
-        get 'invoices', to: 'invoices#student_invoices'
-        
+        get "invoices", to: "invoices#student_invoices"
+
         # LMS module
         get "lms_progress", to: "lms_progress#show"
         resources :attendance_logs, only: [ :index, :create ]

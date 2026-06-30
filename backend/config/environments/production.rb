@@ -80,7 +80,7 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   config.hosts = [
-    ENV.fetch("APP_HOST"),            # e.g. "api.yourdomain.com"
+    ENV.fetch("APP_HOST")            # e.g. "api.yourdomain.com"
   ]
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end

@@ -4,7 +4,11 @@ require 'rails_helper'
 
 RSpec.describe Meklit::ResponseHandler, type: :service do
   let(:batch) { create(:batch, status: 'submitted') }
-  let(:student) { create(:student, batch: batch, status: 'exam_eligible') }
+  # ResponseHandler processes ERTA's response to the *enrollment* batch, so
+  # students are in :sent_to_meklit and transition to :approved / :rejected
+  # (approve_by_meklit! / reject_by_meklit!). Final graduation is a separate
+  # concern handled by Graduation::Processor.
+  let(:student) { create(:student, batch: batch, status: 'sent_to_meklit') }
 
   before do
     batch.students << student
@@ -21,12 +25,12 @@ RSpec.describe Meklit::ResponseHandler, type: :service do
         expect(batch.approved_at).not_to be_nil
       end
 
-      it 'updates all students to graduated' do
+      it 'updates all students to approved' do
         response_data = { status: 'approved' }
         handler = described_class.new(batch, response_data)
         handler.call
 
-        expect(student.reload.status).to eq('graduated')
+        expect(student.reload.status).to eq('approved')
       end
     end
 
@@ -40,13 +44,12 @@ RSpec.describe Meklit::ResponseHandler, type: :service do
         expect(batch.rejection_reason).to eq('Invalid documents')
       end
 
-      it 'updates students back to exam_eligible' do
-        student.update!(status: 'graduated')
+      it 'updates students to rejected' do
         response_data = { status: 'rejected', reason: 'Invalid documents' }
         handler = described_class.new(batch, response_data)
         handler.call
 
-        expect(student.reload.status).to eq('exam_eligible')
+        expect(student.reload.status).to eq('rejected')
       end
     end
 
@@ -60,7 +63,7 @@ RSpec.describe Meklit::ResponseHandler, type: :service do
       end
 
       it 'processes individual student responses' do
-        student2 = create(:student, batch: batch, student_id: 'STU002', status: 'exam_eligible')
+        student2 = create(:student, batch: batch, student_id: 'STU002', status: 'sent_to_meklit')
         batch.students << student2
 
         response_data = {
@@ -73,8 +76,8 @@ RSpec.describe Meklit::ResponseHandler, type: :service do
         handler = described_class.new(batch, response_data)
         handler.call
 
-        expect(student.reload.status).to eq('graduated')
-        expect(student2.reload.status).to eq('exam_eligible')
+        expect(student.reload.status).to eq('approved')
+        expect(student2.reload.status).to eq('rejected')
       end
     end
 

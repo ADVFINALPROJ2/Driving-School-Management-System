@@ -77,45 +77,54 @@ if defined?(Course)
 
   courses_data = [
     {
-      name: 'Standard Driving Course',
-      description: 'Standard pace driving instruction covering theory and practical training over 12 weeks',
-      course_code: 'STD-2024',
-      standard_price: 8000.00,
-      premium_price: 10000.00,
-      fast_track_price: 13000.00,
-      duration_weeks: 12,
-      theory_hours: 35,
-      practical_hours: 52
+      course_name: 'Automobile License (Category B)',
+      description: 'Standard automobile driving course covering theory and practical training.',
+      license_category: 'B',
+      min_age: 18,
+      min_education_level: 'Grade 8',
+      theory_days_required: 35,
+      practical_days_required: 52,
+      standard_fee: 8000.00,
+      premium_fee: 10000.00,
+      fast_track_fee: 13000.00,
+      upgrade_discount_percentage: 30,
+      is_active: true
     },
     {
-      name: 'Premium Driving Course',
-      description: 'Premium pace driving instruction with additional support and flexible scheduling',
-      course_code: 'PRM-2024',
-      standard_price: 8000.00,
-      premium_price: 10000.00,
-      fast_track_price: 13000.00,
-      duration_weeks: 10,
-      theory_hours: 35,
-      practical_hours: 52
+      course_name: 'Public Transport License (Category C)',
+      description: 'Driving course for public transport / light commercial vehicles.',
+      license_category: 'C',
+      min_age: 18,
+      min_education_level: 'Grade 10',
+      theory_days_required: 35,
+      practical_days_required: 52,
+      standard_fee: 10000.00,
+      premium_fee: 12000.00,
+      fast_track_fee: 15000.00,
+      upgrade_discount_percentage: 30,
+      is_active: true
     },
     {
-      name: 'Fast Track Driving Course',
-      description: 'Accelerated driving course with intensive training for quick certification',
-      course_code: 'FTK-2024',
-      standard_price: 8000.00,
-      premium_price: 10000.00,
-      fast_track_price: 13000.00,
-      duration_weeks: 8,
-      theory_hours: 35,
-      practical_hours: 52
+      course_name: 'Motorcycle License (Category A)',
+      description: 'Motorcycle driving course covering theory and practical training.',
+      license_category: 'A',
+      min_age: 18,
+      min_education_level: 'Grade 8',
+      theory_days_required: 35,
+      practical_days_required: 52,
+      standard_fee: 6000.00,
+      premium_fee: 7500.00,
+      fast_track_fee: 9000.00,
+      upgrade_discount_percentage: 30,
+      is_active: true
     }
   ]
 
   courses_data.each do |course_attrs|
-    course = Course.find_or_create_by!(course_code: course_attrs[:course_code]) do |c|
+    course = Course.find_or_create_by!(course_name: course_attrs[:course_name]) do |c|
       c.assign_attributes(course_attrs)
     end
-    puts "  ✓ Seeded course: #{course.name} (#{course.course_code})"
+    puts "  ✓ Seeded course: #{course.course_name} (#{course.license_category})"
   end
 
   puts "Courses seeded: #{Course.count} total"

@@ -20,11 +20,11 @@ class Course < ApplicationRecord
   # Instance methods
   def fee_for_tier(tier)
     case tier.to_s
-    when 'standard'
+    when "standard"
       standard_fee
-    when 'premium'
+    when "premium"
       premium_fee || standard_fee
-    when 'fast_track'
+    when "fast_track"
       fast_track_fee || standard_fee
     else
       standard_fee

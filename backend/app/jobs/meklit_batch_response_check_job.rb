@@ -4,7 +4,7 @@ class MeklitBatchResponseCheckJob < ApplicationJob
   def perform
     Rails.logger.info "MeklitBatchResponseCheckJob started at #{Time.current}"
 
-    Batch.where(status: 'submitted').find_each do |batch|
+    Batch.where(status: "submitted").find_each do |batch|
       MeklitBatchExportJob.perform_later(batch.id)
     end
 

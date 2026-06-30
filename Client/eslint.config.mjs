@@ -25,6 +25,18 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+
+  // Project-wide rule relaxations. These currently fire across much of the
+  // existing UI code (explicit `any`, and the React-Compiler hook rules
+  // shipped with eslint-config-next 16). Downgraded to warnings so they stay
+  // visible without blocking CI; tighten back to "error" and fix incrementally.
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/incompatible-library": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

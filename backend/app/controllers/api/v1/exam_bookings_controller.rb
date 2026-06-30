@@ -12,9 +12,9 @@ module Api
         authorize ExamBooking
         @exam_bookings = if top_level_index?
                            ExamBooking.all.includes(:student).order(scheduled_date: :asc)
-                         else
+        else
                            @student.exam_bookings.order(scheduled_date: :asc)
-                         end
+        end
         render_success(@exam_bookings)
       end
 

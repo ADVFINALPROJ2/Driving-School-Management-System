@@ -3,7 +3,7 @@
 module Api
   module V1
     class PayrollEntriesController < BaseController
-      before_action :set_payroll_entry, only: [:show]
+      before_action :set_payroll_entry, only: [ :show ]
 
       def index
         payroll_entries = policy_scope(PayrollEntry)
@@ -47,7 +47,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ["Payroll entry not found"]
+          errors: [ "Payroll entry not found" ]
         }, status: :not_found
       end
 

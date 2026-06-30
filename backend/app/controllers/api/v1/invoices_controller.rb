@@ -5,7 +5,7 @@ module Api
     # InvoicesController - Manages student invoice operations
     # Endpoints: index, show, mark_paid, student invoices
     class InvoicesController < BaseController
-      before_action :set_invoice, only: [:show, :mark_paid]
+      before_action :set_invoice, only: [ :show, :mark_paid ]
 
       # GET /api/v1/invoices
       # Query params: status (pending/paid/overdue), milestone_type, student_id
@@ -47,13 +47,13 @@ module Api
         if @invoice.paid?
           return render json: {
             success: false,
-            errors: ['Invoice is already paid']
+            errors: [ "Invoice is already paid" ]
           }, status: :unprocessable_entity
         end
 
         @invoice.transaction do
           @invoice.update!(
-            status: 'paid',
+            status: "paid",
             paid_at: Time.current,
             payment_method: params[:payment_method],
             payment_reference: params[:payment_reference]
@@ -66,7 +66,7 @@ module Api
         render json: {
           success: true,
           data: invoice_json(@invoice),
-          message: 'Invoice marked as paid successfully'
+          message: "Invoice marked as paid successfully"
         }, status: :ok
       rescue ActiveRecord::RecordInvalid => e
         render json: {
@@ -87,15 +87,15 @@ module Api
           success: true,
           data: invoices.map { |invoice| invoice_json(invoice) },
           meta: {
-            total_pending: student.invoices.pending.sum(:amount),
-            total_paid: student.invoices.paid.sum(:amount),
+            total_pending: student.invoices.pending.sum(:amount).to_f,
+            total_paid: student.invoices.paid.sum(:amount).to_f,
             overdue_count: student.invoices.overdue.count
           }
         }, status: :ok
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ['Student not found']
+          errors: [ "Student not found" ]
         }, status: :not_found
       end
 
@@ -106,7 +106,7 @@ module Api
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          errors: ['Invoice not found']
+          errors: [ "Invoice not found" ]
         }, status: :not_found
       end
 
@@ -117,7 +117,7 @@ module Api
           student_id: invoice.student_id,
           student_name: invoice.student ? "#{invoice.student.first_name} #{invoice.student.last_name}" : nil,
           milestone_type: invoice.milestone_type,
-          amount: invoice.amount,
+          amount: invoice.amount.to_f,
           status: invoice.status,
           due_date: invoice.due_date,
           paid_at: invoice.paid_at,
@@ -142,7 +142,7 @@ module Api
 
       def update_student_milestone_flags
         student = @invoice.student
-        
+
         case @invoice.milestone_type
         when Invoice::MILESTONE_TYPES[:registration_and_theory]
           student.update!(milestone_1_paid: true)

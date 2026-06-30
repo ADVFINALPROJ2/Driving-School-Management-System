@@ -3,7 +3,9 @@
 require "swagger_helper"
 
 RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
-  let(:user) { create(:user) }
+  # Admin so authenticated endpoints pass Pundit authorization (a default
+  # student-role user would get 403 on the admin/clerk-scoped routes here).
+  let(:user) { create(:user, :admin) }
   let(:batch) { create(:batch) }
   let(:student) { create(:student, batch: batch) }
   let(:exam_booking) { create(:exam_booking, student: student) }
@@ -87,7 +89,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get current user" do
       tags "Authentication"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Current user data" do
         run_test! do |response|
@@ -107,7 +109,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     delete "Log out" do
       tags "Authentication"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Logged out successfully" do
         run_test!
@@ -121,7 +123,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List students" do
       tags "Students"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :page, in: :query, type: :integer, required: false, description: "Page number (default: 1)"
       parameter name: :per_page, in: :query, type: :integer, required: false, description: "Items per page (default: 50, max: 200)"
 
@@ -145,7 +147,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Students"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student, in: :body, required: true, schema: {
         type: :object,
         properties: {
@@ -203,14 +205,14 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get a student" do
       tags "Students"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :id, in: :path, type: :integer, required: true
 
       response "200", "Student data" do
         let(:id) { student.id }
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body["id"]).to eq(student.id)
+          expect(body["data"]["id"]).to eq(student.id)
         end
       end
 
@@ -227,7 +229,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List batches" do
       tags "Batches"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :page, in: :query, type: :integer, required: false
       parameter name: :per_page, in: :query, type: :integer, required: false
 
@@ -250,7 +252,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Batches"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :batch, in: :body, required: true, schema: {
         type: :object,
         properties: {
@@ -281,14 +283,14 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get a batch" do
       tags "Batches"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :id, in: :path, type: :integer, required: true
 
       response "200", "Batch data" do
         let(:id) { create(:batch).id }
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body["id"]).to be_present
+          expect(body["data"]["id"]).to be_present
         end
       end
 
@@ -305,7 +307,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List exam bookings for a student" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Exam bookings list" do
@@ -319,7 +321,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
         type: :object,
@@ -339,6 +341,9 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       response "201", "Exam booking created" do
         let(:student_id) { student.id }
         let(:exam_booking) { { exam_booking: { exam_type: "theory", scheduled_date: 1.month.from_now, venue: "Main Hall" } } }
+        # Eligibility gatekeeping is covered by ERTA::EligibilityValidator specs;
+        # here we document the booking-creation success response.
+        before { allow_any_instance_of(ERTA::EligibilityValidator).to receive(:call).and_return(true) }
         run_test!
       end
     end
@@ -348,7 +353,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get an exam booking" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
 
@@ -363,7 +368,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
@@ -381,7 +386,8 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
 
       response "200", "Exam booking updated" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { venue: "New Venue" } } }
         run_test!
       end
@@ -392,7 +398,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     post "Cancel an exam booking" do
       tags "Exam Bookings"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
 
@@ -411,7 +417,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Exam Bookings"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :id, in: :path, type: :integer, required: true
       parameter name: :exam_booking, in: :body, required: true, schema: {
@@ -430,19 +436,21 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
 
       response "200", "Score recorded (passing)" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { score: 75, notes: "Good performance" } } }
         run_test! do
-          expect(exam_booking.reload.status).to eq("completed")
+          expect(booking.reload.status).to eq("completed")
         end
       end
 
       response "200", "Score recorded (failing, penalty applied)" do
         let(:student_id) { student.id }
-        let(:id) { exam_booking.id }
+        let(:booking) { create(:exam_booking, student: student) }
+        let(:id) { booking.id }
         let(:exam_booking) { { exam_booking: { score: 30, notes: "Needs improvement" } } }
         run_test! do
-          expect(exam_booking.reload.status).to eq("completed")
+          expect(booking.reload.status).to eq("completed")
           expect(student.reload.under_penalty).to be true
         end
       end
@@ -455,7 +463,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List attendance logs for a student" do
       tags "Attendance Logs"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :phase, in: :query, type: :string, required: false, description: "Filter by phase (theory/practical)"
       parameter name: :date, in: :query, type: :string, required: false, description: "Filter by date (YYYY-MM-DD)"
@@ -476,7 +484,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Attendance Logs"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :attendance_log, in: :body, required: true, schema: {
         type: :object,
@@ -508,7 +516,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List mock tests for a student" do
       tags "Mock Tests"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Mock tests list" do
@@ -526,7 +534,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Mock Tests"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
       parameter name: :mock_test, in: :body, required: true, schema: {
         type: :object,
@@ -556,7 +564,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "Get student LMS progress" do
       tags "LMS Progress"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :student_id, in: :path, type: :integer, required: true
 
       response "200", "Progress data" do
@@ -564,7 +572,8 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
         run_test! do |response|
           body = JSON.parse(response.body)
           expect(body["success"]).to be true
-          expect(body["data"]).to have_key("theory_percent")
+          expect(body["data"]).to have_key("theory")
+          expect(body["data"]["theory"]).to have_key("percentage")
         end
       end
 
@@ -581,13 +590,13 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List license categories" do
       tags "License Categories"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "License categories with pricing" do
         run_test! do |response|
           body = JSON.parse(response.body)
-          expect(body).to be_an(Array)
-          expect(body.size).to eq(4)
+          expect(body["data"]).to be_an(Array)
+          expect(body["data"].size).to eq(4)
         end
       end
     end
@@ -599,7 +608,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
     get "List users" do
       tags "Users"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
 
       response "200", "Users list" do
         let(:user) { create(:user, :admin) }
@@ -610,6 +619,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       end
 
       response "403", "Forbidden for non-admin" do
+        let(:user) { create(:user) } # non-admin (student) → Pundit denies
         run_test!
       end
     end
@@ -618,7 +628,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       tags "Users"
       consumes "application/json"
       produces "application/json"
-      security [Bearer: []]
+      security [ Bearer: [] ]
       parameter name: :user_params, in: :body, required: true, schema: {
         type: :object,
         properties: {
@@ -642,6 +652,7 @@ RSpec.describe "API V1", swagger_doc: "v1/swagger.json", type: :request do
       end
 
       response "403", "Forbidden for non-admin" do
+        let(:user) { create(:user) } # non-admin (student) → Pundit denies
         let(:user_params) { { user: { email: "x@example.com", password: "Password123!", full_name: "X" } } }
         run_test!
       end
