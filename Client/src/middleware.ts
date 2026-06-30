@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const protectedPaths = [
   "/",
   "/students",
-  "/dashboard",
+  "/users",
   "/admin",
   "/clerk",
   "/instructor",
@@ -22,6 +22,7 @@ function matchesProtectedPath(pathname: string): boolean {
 
 const roleAccess: Record<string, string[]> = {
   "/admin": ["admin"],
+  "/users": ["admin"],
   "/clerk": ["admin", "clerk"],
   "/instructor": ["admin", "instructor"],
   "/student": ["admin", "student"],
@@ -67,7 +68,7 @@ export const config = {
   matcher: [
     "/",
     "/students/:path*",
-    "/dashboard/:path*",
+    "/users/:path*",
     "/admin/:path*",
     "/clerk/:path*",
     "/instructor/:path*",
