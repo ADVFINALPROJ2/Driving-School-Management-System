@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // The dashboard lives at "/" (the (dashboard) route group). Redirect the
+  // common "/dashboard" guess so it isn't a dead 404.
+  async redirects() {
+    return [{ source: "/dashboard", destination: "/", permanent: false }];
+  },
 };
 
 export default nextConfig;

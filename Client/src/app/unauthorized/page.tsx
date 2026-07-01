@@ -14,7 +14,7 @@ export default function UnauthorizedPage() {
           You don&apos;t have permission to view this page. Please contact your administrator if you believe this is an error.
         </p>
         <Button asChild variant="outline">
-          <Link href="/dashboard">Back to Dashboard</Link>
+          <Link href="/">Back to Dashboard</Link>
         </Button>
       </div>
     </div>
