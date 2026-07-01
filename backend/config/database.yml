@@ -71,7 +71,9 @@ production:
   primary: &primary_production
     <<: *default
     database: backend_production
-    username: backend
+    host: <%= ENV.fetch("DB_HOST", "localhost") %>
+    port: <%= ENV.fetch("DB_PORT", 5432) %>
+    username: <%= ENV.fetch("DATABASE_USERNAME", "backend") %>
     password: <%= ENV["BACKEND_DATABASE_PASSWORD"] %>
   cache:
     <<: *primary_production

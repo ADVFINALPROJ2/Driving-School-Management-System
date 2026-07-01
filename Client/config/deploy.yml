@@ -1,0 +1,42 @@
+# Kamal deploy config — Frontend (Next.js) on the same VPS as the backend.
+# This is a SECOND Kamal project; run it from the Client/ directory:
+#   cd Client && kamal deploy
+# It registers with the same kamal-proxy as the backend, so app.* gets its own
+# Let's Encrypt cert. Images build on the VPS and push to the VPS-local registry.
+#
+# Required env on the machine running kamal:
+#   DEPLOY_SERVER_IP   public IP of the VPS
+#   FRONTEND_HOST      frontend hostname, e.g. app.yourdomain.com
+#   API_URL            backend base URL, e.g. https://api.yourdomain.com
+#                      (baked into the client bundle at build time)
+# Required secret (Client/.kamal/secrets): KAMAL_REGISTRY_PASSWORD
+
+service: frontend
+image: frontend
+
+servers:
+  web:
+    - <%= ENV.fetch("DEPLOY_SERVER_IP") %>
+
+# TLS terminated by the VPS's existing nginx (app.dtmf.studio -> 127.0.0.1:8080),
+# which forwards to the shared kamal-proxy running on the custom HTTP port.
+proxy:
+  ssl: false
+  host: <%= ENV.fetch("FRONTEND_HOST") %>
+  app_port: 3000
+
+registry:
+  server: localhost:5000
+  username: deploy
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+  remote: ssh://root@<%= ENV.fetch("DEPLOY_SERVER_IP") %>
+  args:
+    # PUBLIC value, inlined into the JS bundle at build time.
+    NEXT_PUBLIC_API_URL: <%= ENV.fetch("API_URL") %>
+
+aliases:
+  logs: app logs -f

@@ -65,3 +65,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+# Kamal local-registry htpasswd (generated; never commit)
+backend/.kamal/registry/
+Client/.kamal/registry/
+
+# Production env (filled-in secrets; never commit)
+.env.prod
